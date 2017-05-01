@@ -1,0 +1,21 @@
+[package]
+name = "akc-bot"
+version = "0.1.0"
+authors = ["François Mockers <mockersf@gmail.com>"]
+
+[dependencies]
+iron = "0.5.1"
+router = "0.5.1"
+log = "0.3.7"
+env_logger = "0.4.2"
+logger = "0.3.0"
+serde = "1.0.2"
+serde_derive = "1.0.2"
+serde_json = "1.0.1"
+bodyparser = "0.7.0"
+persistent = "*"
+hyper = "*"
+hyper-native-tls = "*"
+uuid = { version = "0.4", features = ["serde", "v4"] }
+rust-ini = "0.10"
+lazy_static = "0.2.8"
