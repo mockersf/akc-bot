@@ -1,21 +1,20 @@
-use hyper::Client;
 use hyper::Url;
 use hyper::header::{Headers, Authorization};
-use hyper::net::HttpsConnector;
-use hyper_native_tls::NativeTlsClient;
+use futures::future::*;
 use std::io::Read;
 use std::collections::HashMap;
-
 use serde_json;
 
+use clients::future_request;
+
 use CONFIGURATION;
+
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct Value {
     value: String,
     confidence: f32,
 }
-
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Response {
@@ -26,31 +25,30 @@ pub struct Response {
     entities: HashMap<String, Vec<Value>>,
 }
 
+#[derive(Debug, Clone)]
+pub struct Error {
+    msg: String,
+}
 
 pub struct WitAi {}
 
 impl WitAi {
-    pub fn get(query: &String) -> Response {
+    pub fn get(query: &String) -> Box<Future<Item = Response, Error = Error>> {
+        let quer = query.clone();
         let mut url = Url::parse("https://api.wit.ai/message").unwrap();
         url.query_pairs_mut()
             .append_pair("v", &CONFIGURATION.version)
-            .append_pair("q", &query);
-        let ssl = NativeTlsClient::new().unwrap();
-        let connector = HttpsConnector::new(ssl);
-        let client = Client::with_connector(connector);
-        let mut s = String::new();
+            .append_pair("q", &quer);
         let mut headers = Headers::new();
         headers.set(Authorization(format!("Bearer {}", CONFIGURATION.wit_ai_token).to_owned()));
-        client
-            .get(url)
-            .headers(headers)
-            .send()
-            .unwrap()
-            .read_to_string(&mut s)
-            .unwrap();
-        let deserialized: Response = serde_json::from_str(&s).unwrap();
-        info!("{:?}", deserialized);
 
-        deserialized
+        future_request::get_async(url, headers)
+            .map(move |mut response| -> Response {
+                     let mut s = String::new();
+                     response.read_to_string(&mut s).unwrap();
+                     serde_json::from_str(&s).unwrap()
+                 })
+            .map_err(|e| Error { msg: format!("error getting response from wit.ai: {:?}", e) })
+            .boxed()
     }
 }

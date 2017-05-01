@@ -15,6 +15,8 @@ extern crate persistent;
 
 extern crate hyper;
 extern crate hyper_native_tls;
+extern crate futures;
+extern crate futures_cpupool;
 
 extern crate uuid;
 extern crate ini;
@@ -23,12 +25,14 @@ extern crate lazy_static;
 
 mod middlewares;
 mod handlers;
-mod witai;
+mod clients;
 
 use iron::prelude::Chain;
 use iron::Iron;
 use router::Router;
 use logger::Logger;
+
+use futures_cpupool::CpuPool;
 
 use ini::Ini;
 
@@ -51,6 +55,11 @@ lazy_static! {
     };
 }
 
+lazy_static! {
+    static ref REQUEST_CPU_POOL: CpuPool = {
+        CpuPool::new_num_cpus()
+    };
+}
 
 fn main() {
     env_logger::init().unwrap();

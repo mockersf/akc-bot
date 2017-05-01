@@ -19,3 +19,5 @@ hyper-native-tls = "*"
 uuid = { version = "0.4", features = ["serde", "v4"] }
 rust-ini = "0.10"
 lazy_static = "0.2.8"
+futures = "0.1"
+futures-cpupool = "0.1.5"

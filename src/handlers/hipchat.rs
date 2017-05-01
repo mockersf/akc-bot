@@ -4,7 +4,8 @@ use bodyparser;
 use iron::prelude::*;
 use serde_json;
 
-use witai::WitAi;
+use clients::witai::WitAi;
+use futures::Future;
 
 use handlers::lib::my_error::MyError;
 
@@ -68,8 +69,10 @@ create_handler!(ReceiveNotification,
     match struct_body {
         Ok(Some(struct_body)) => {
             info!("Parsed body:\n{:?}", struct_body);
-            let wit_ai_response = WitAi::get(&struct_body.item.message.unwrap().message);
-            info!("{:?}", wit_ai_response);
+            let message = struct_body.item.message.unwrap().message;
+            let wit_ai_response_future = WitAi::get(&message);
+            info!("sent request to wit.ai");
+            let wit_ai_response = wit_ai_response_future.wait().unwrap();
             let message = serde_json::to_string(&wit_ai_response).unwrap();
             Ok(Response::with((status::Ok,
                                serde_json::to_string(&NotificationResponse {
