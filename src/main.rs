@@ -64,11 +64,6 @@ lazy_static! {
 fn main() {
     env_logger::init().unwrap();
 
-    /*    let mut conf = Ini::new();
-    conf.with_section(Some("WitAI".to_owned()))
-        .set("token", "G6MY4S6Z672YB4M2N37SIRTRPGXIUGSG");
-    conf.write_to_file("conf.ini").unwrap();
-*/
     info!("application starting");
 
     let (logger_before, logger_after) = Logger::new(None);

@@ -4,7 +4,7 @@ use futures::future::*;
 use std::io::Read;
 use std::collections::HashMap;
 use serde_json;
-
+use hyper;
 use clients::future_request;
 
 use CONFIGURATION;
@@ -42,7 +42,7 @@ impl WitAi {
         let mut headers = Headers::new();
         headers.set(Authorization(format!("Bearer {}", CONFIGURATION.wit_ai_token).to_owned()));
 
-        future_request::get_async(url, headers)
+        future_request::get_async::<hyper::Error>(url, headers)
             .map(move |mut response| -> Response {
                      let mut s = String::new();
                      response.read_to_string(&mut s).unwrap();
