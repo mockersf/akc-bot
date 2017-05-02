@@ -1,11 +1,15 @@
-use std::io::Read;
+use std;
 use hyper;
 use hyper::header::{Headers, Authorization};
 use serde;
 use serde_json;
+use futures::future::*;
+use hyper::status::StatusCode;
+
 
 use clients::akc::Akc;
 use clients::akc::error::{AkcClientError, ErrorWrapper};
+use clients::future_request;
 
 impl Akc {
     pub fn auth_header(self: &Akc) -> Headers {
@@ -13,31 +17,39 @@ impl Akc {
         headers.set(Authorization(format!("Bearer {}", self.token)));
         headers
     }
+
+    pub fn get<Wrapper>
+        (self: &Akc,
+         url: hyper::Url)
+         -> Box<Future<Item = Wrapper::Data, Error = AkcClientError> + std::marker::Send>
+        where Wrapper: DataWrapper,
+              Wrapper: serde::de::DeserializeOwned,
+              Wrapper::Data: 'static
+    {
+        future_request::get_async::<AkcClientError>(url, self.auth_header())
+            .and_then(move |response| match StatusCode::from_u16(response.status_raw().0) {
+                          StatusCode::Ok => {
+                let data_wrapper: Wrapper = match serde_json::from_reader(response) {
+                    Ok(data_wrapper) => data_wrapper,
+                    Err(error) => Err(error)?,
+                };
+                Ok(data_wrapper.data())
+            }
+                          _ => {
+                let error_wrapper: ErrorWrapper = match serde_json::from_reader(response) {
+                    Ok(error_wrapper) => error_wrapper,
+                    Err(error) => Err(error)?,
+                };
+                Err(error_wrapper)?
+            }
+                      })
+            .boxed()
+    }
 }
 
 pub trait DataWrapper {
-    type Data;
+    type Data: std::marker::Send;
     fn data(self: Self) -> Self::Data;
-}
-
-pub fn response_to_string(mut response: hyper::client::Response) -> String {
-    let mut s = String::new();
-    response.read_to_string(&mut s);
-    s
-}
-
-pub fn extract<'de, Wrapper: DataWrapper>(response: &'de str)
-                                          -> Result<Wrapper::Data, AkcClientError>
-    where Wrapper: serde::Deserialize<'de>
-{
-    let data_wrapper: Wrapper = match serde_json::from_str(&response) {
-        Ok(data_wrapper) => data_wrapper,
-        Err(_) => {
-            let error: ErrorWrapper = serde_json::from_str(&response)?;
-            return Err(error)?;
-        }
-    };
-    Ok(data_wrapper.data())
 }
 
 macro_rules! data_wrapper {
@@ -53,6 +65,5 @@ macro_rules! data_wrapper {
                 self.data
             }
         }
-
     }
 }
