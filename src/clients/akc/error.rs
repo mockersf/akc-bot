@@ -12,15 +12,18 @@ struct AkcError {
     code: u32,
     message: String,
 }
+
 #[derive(Debug, Clone)]
 struct InternalError {
     msg: String,
 }
+
 #[derive(Debug, Clone)]
 pub enum AkcClientError {
     InternalError(String),
     AkcError(u32, String),
 }
+
 impl From<hyper::Error> for AkcClientError {
     fn from(err: hyper::Error) -> AkcClientError {
         AkcClientError::InternalError(format!("couldn't contact AKC: {:?}", err))

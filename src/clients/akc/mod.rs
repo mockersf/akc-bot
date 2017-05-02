@@ -1,4 +1,5 @@
-use hyper::header::{Headers, Authorization};
+#[macro_use]
+mod helpers;
 
 mod error;
 mod user;
@@ -14,11 +15,5 @@ impl Akc {
             token,
             base_url: "https://api.artik.cloud/v1.1".to_string(),
         }
-    }
-
-    fn auth_header(self: &Akc) -> Headers {
-        let mut headers = Headers::new();
-        headers.set(Authorization(format!("Bearer {}", self.token)));
-        headers
     }
 }

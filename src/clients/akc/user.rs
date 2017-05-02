@@ -1,16 +1,12 @@
 use hyper::Url;
 use futures::future::*;
-use std::io::Read;
-use serde_json;
 
-use clients::akc::error::{AkcClientError, ErrorWrapper};
-
+use clients::akc::Akc;
+use clients::akc::error::AkcClientError;
+use clients::akc::helpers;
 use clients::future_request;
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
-struct DataUser {
-    data: User,
-}
+data_wrapper!(DataUser, User);
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct User {
@@ -20,25 +16,13 @@ pub struct User {
     email: String,
 }
 
-use clients::akc::Akc;
-
 impl Akc {
     pub fn user_self(self: &Akc) -> Box<Future<Item = User, Error = AkcClientError>> {
         let url = Url::parse(&format!("{}/users/self", self.base_url)).unwrap();
 
         future_request::get_async::<AkcClientError>(url, self.auth_header())
-            .and_then(move |mut response| {
-                let mut s = String::new();
-                response.read_to_string(&mut s)?;
-                let user_wrapper: DataUser = match serde_json::from_str(&s) {
-                    Ok(data_user) => data_user,
-                    Err(_) => {
-                        let error: ErrorWrapper = serde_json::from_str(&s)?;
-                        return Err(error)?;
-                    }
-                };
-                Ok(user_wrapper.data)
-            })
+            .map(move |mut response| helpers::response_to_string(response))
+            .and_then(move |response| helpers::extract::<DataUser>(&response))
             .boxed()
     }
 }
