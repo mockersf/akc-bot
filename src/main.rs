@@ -2,6 +2,7 @@ extern crate logger;
 #[macro_use]
 extern crate log;
 extern crate env_logger;
+extern crate time;
 
 extern crate iron;
 extern crate router;
@@ -11,7 +12,6 @@ extern crate serde_derive;
 extern crate serde;
 extern crate serde_json;
 extern crate bodyparser;
-extern crate persistent;
 
 extern crate hyper;
 extern crate hyper_native_tls;
@@ -27,10 +27,13 @@ mod middlewares;
 mod handlers;
 mod clients;
 
+use std::env;
 use iron::prelude::Chain;
 use iron::Iron;
 use router::Router;
 use logger::Logger;
+use log::{LogRecord, LogLevelFilter};
+use env_logger::LogBuilder;
 
 use futures_cpupool::CpuPool;
 
@@ -62,7 +65,24 @@ lazy_static! {
 }
 
 fn main() {
-    env_logger::init().unwrap();
+    let format = |record: &LogRecord| {
+        let t = time::now();
+        format!("{},{:03} - {} - {}: {}",
+                time::strftime("%Y-%m-%d %H:%M:%S", &t).unwrap(),
+                t.tm_nsec / 1000_000,
+                record.level(),
+                record.location().module_path(),
+                record.args())
+    };
+
+    let mut builder = LogBuilder::new();
+    builder.format(format).filter(None, LogLevelFilter::Info);
+
+    if env::var("RUST_LOG").is_ok() {
+        builder.parse(&env::var("RUST_LOG").unwrap());
+    }
+
+    builder.init().unwrap();
 
     info!("application starting");
 
