@@ -64,6 +64,28 @@ lazy_static! {
     };
 }
 
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
+
+#[derive(Clone, Debug)]
+pub struct Database {
+    tokens: HashMap<String, ::clients::akc::token::Token>,
+}
+impl Database {
+    pub fn new() -> Database {
+        Database { tokens: HashMap::new() }
+    }
+    pub fn add_token(&mut self, from: String, token: ::clients::akc::token::Token) {
+        self.tokens.insert(from, token);
+    }
+    pub fn get_token(&self, key: String) -> &::clients::akc::token::Token {
+        &self.tokens[&key]
+    }
+}
+lazy_static! {
+    static ref DATABASE: Arc<Mutex<Database>> = Arc::new(Mutex::new(Database::new()));
+}
+
 fn main() {
     let format = |record: &LogRecord| {
         let t = time::now();
