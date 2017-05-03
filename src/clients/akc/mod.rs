@@ -3,6 +3,7 @@ mod helpers;
 
 mod error;
 mod user;
+mod device;
 
 pub struct Akc {
     token: String,
