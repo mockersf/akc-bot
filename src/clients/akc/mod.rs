@@ -4,6 +4,7 @@ mod helpers;
 mod error;
 mod user;
 mod device;
+pub mod token;
 
 pub struct Akc {
     token: String,
