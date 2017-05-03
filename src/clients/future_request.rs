@@ -21,6 +21,7 @@ pub fn get_async<Error: 'static>
                       let ssl = NativeTlsClient::new().unwrap();
                       let connector = HttpsConnector::new(ssl);
                       let client = Client::with_connector(connector);
+                      info!("calling GET {:?}", url);
                       Ok(try!(client.get(url).headers(headers).send()))
                   })
         .boxed()

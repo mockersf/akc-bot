@@ -33,12 +33,11 @@ pub struct Error {
 pub struct WitAi {}
 
 impl WitAi {
-    pub fn get(query: &String) -> Box<Future<Item = Response, Error = Error>> {
-        let quer = query.clone();
+    pub fn get(query: &str) -> Box<Future<Item = Response, Error = Error>> {
         let mut url = Url::parse("https://api.wit.ai/message").unwrap();
         url.query_pairs_mut()
             .append_pair("v", &CONFIGURATION.version)
-            .append_pair("q", &quer);
+            .append_pair("q", query);
         let mut headers = Headers::new();
         headers.set(Authorization(format!("Bearer {}", CONFIGURATION.wit_ai_token).to_owned()));
 
