@@ -5,8 +5,6 @@ use clients::akc::Akc;
 use clients::akc::error::AkcClientError;
 use clients::akc::helpers;
 
-use clients::akc::token::Token;
-
 data_wrapper!(DataUser, User);
 
 #[derive(Deserialize, Serialize, Debug, Clone)]

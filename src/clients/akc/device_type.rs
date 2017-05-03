@@ -4,7 +4,6 @@ use futures::future::*;
 use clients::akc::Akc;
 use clients::akc::error::AkcClientError;
 use clients::akc::helpers;
-use clients::akc::token::Token;
 
 paginated_wrapper!(DataDeviceTypes, DeviceTypes, deviceTypes, DeviceType);
 

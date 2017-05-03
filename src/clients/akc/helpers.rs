@@ -11,7 +11,6 @@ use futures::stream::{self, Stream};
 use clients::akc::Akc;
 use clients::akc::error::{AkcClientError, ErrorWrapper};
 use clients::future_request;
-use clients::akc::token::Token;
 
 use DATABASE;
 
@@ -102,7 +101,7 @@ impl Akc {
              mut url: hyper::Url,
          offset: u32,
      page_count: u32)
-         -> Box<Future<Item = (Wrapper::Data, (u32, u32)),
+         -> Box<Future<Item = (Wrapper::Data, PageInformation),
           Error = AkcClientError> + std::marker::Send>
         where Wrapper: PaginatedWrapper + DataWrapper,
               Wrapper: serde::de::DeserializeOwned,
@@ -119,7 +118,11 @@ impl Akc {
                     Err(error) => Err(error)?,
                 };
                 let count = data_wrapper.count();
-                Ok((data_wrapper.data(), (offset + page_count, count)))
+                Ok((data_wrapper.data(),
+                    PageInformation {
+                        offset: offset + page_count,
+                        last_page_count: count,
+                    }))
             }
                           _ => {
                 let error_wrapper: ErrorWrapper = match serde_json::from_reader(response) {
@@ -141,13 +144,16 @@ impl Akc {
               Wrapper::Data: Collection + 'static,
     {
         let page_count = 100;
-        let stream = stream::unfold((0, page_count), move |state| if state.1 < page_count {
+        let stream = stream::unfold(PageInformation {
+            offset: 0,
+            last_page_count: page_count,
+        }, move |state| if state.last_page_count < page_count {
             None
         } else {
             let fut = Self::get_paginated_with_pagination_info::<Wrapper>(from.clone(),
                                                                           url.clone(),
-                                                                          state.0,
-                                                                          state.1);
+                                                                          state.offset,
+                                                                          page_count);
             Some(fut)
         });
 
@@ -228,6 +234,10 @@ macro_rules! data_wrapper {
     }
 }
 
+pub struct PageInformation {
+    offset: u32,
+    last_page_count: u32,
+}
 
 pub trait PaginatedWrapper {
     type Collected: std::marker::Send;
