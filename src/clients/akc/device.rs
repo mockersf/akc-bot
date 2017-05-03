@@ -4,6 +4,7 @@ use futures::future::*;
 use clients::akc::Akc;
 use clients::akc::error::AkcClientError;
 use clients::akc::helpers;
+use clients::akc::token::Token;
 
 paginated_wrapper!(DataDevices, Devices, devices, Device);
 
@@ -15,8 +16,16 @@ pub struct Device {
 }
 
 impl Akc {
-    pub fn devices_wait(self: &Akc, uid: &String) -> Result<Vec<Device>, AkcClientError> {
-        let url = Url::parse(&format!("{}/users/{}/devices", self.base_url, uid)).unwrap();
-        self.get_all_pages_sync_parallel::<DataDevices>(url.clone())
+    pub fn devices_parallel(from: String,
+                            uid: &str)
+                            -> Box<Future<Item = Vec<Device>, Error = AkcClientError>> {
+        let url = Url::parse(&format!("{}/users/{}/devices", Self::base_url(), uid)).unwrap();
+        Self::get_all_pages_async_parallel::<DataDevices>(from, url)
+    }
+    pub fn devices_sequential(from: String,
+                              uid: &str)
+                              -> Box<Future<Item = Vec<Device>, Error = AkcClientError>> {
+        let url = Url::parse(&format!("{}/users/{}/devices", Self::base_url(), uid)).unwrap();
+        Self::get_all_pages_async_sequential::<DataDevices>(from, url)
     }
 }

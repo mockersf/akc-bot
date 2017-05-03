@@ -5,6 +5,8 @@ use clients::akc::Akc;
 use clients::akc::error::AkcClientError;
 use clients::akc::helpers;
 
+use clients::akc::token::Token;
+
 data_wrapper!(DataUser, User);
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -16,9 +18,9 @@ pub struct User {
 }
 
 impl Akc {
-    pub fn user_self(self: &Akc) -> Box<Future<Item = User, Error = AkcClientError>> {
-        let url = Url::parse(&format!("{}/users/self", self.base_url)).unwrap();
+    pub fn user_self(from: String) -> Box<Future<Item = User, Error = AkcClientError>> {
+        let url = Url::parse(&format!("{}/users/self", Self::base_url::<'static>())).unwrap();
 
-        self.get::<DataUser>(url)
+        Self::get::<DataUser>(from, url)
     }
 }

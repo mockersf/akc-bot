@@ -6,31 +6,37 @@ use serde_json;
 use futures::future::*;
 use hyper::status::StatusCode;
 
+use futures::stream::{self, Stream};
 
 use clients::akc::Akc;
 use clients::akc::error::{AkcClientError, ErrorWrapper};
 use clients::future_request;
+use clients::akc::token::Token;
+
+use DATABASE;
 
 impl Akc {
-    pub fn auth_header(self: &Akc) -> Headers {
+    fn auth_header(from: String) -> Headers {
         let mut headers = Headers::new();
-        headers.set(Authorization(format!("Bearer {}", self.token)));
+        let mut auth_header = "Bearer ".to_owned();
+        auth_header.push_str(DATABASE.lock().unwrap().get_token(from).bearer());
+        headers.set(Authorization(auth_header));
         headers
     }
 
     pub fn get<Wrapper>
-        (self: &Akc,
+        (from: String,
          url: hyper::Url)
          -> Box<Future<Item = Wrapper::Data, Error = AkcClientError> + std::marker::Send>
         where Wrapper: DataWrapper,
               Wrapper: serde::de::DeserializeOwned,
               Wrapper::Data: 'static
     {
-        self.get_with_params::<Wrapper>(url, vec![])
+        Self::get_with_params::<Wrapper>(from, url, vec![])
     }
 
     pub fn get_with_params<Wrapper>
-        (self: &Akc,
+        (from: String,
          mut url: hyper::Url,
          query_params: Vec<(String, String)>)
          -> Box<Future<Item = Wrapper::Data, Error = AkcClientError> + std::marker::Send>
@@ -39,7 +45,7 @@ impl Akc {
               Wrapper::Data: 'static
     {
         url.query_pairs_mut().extend_pairs(query_params);
-        future_request::get_async::<AkcClientError>(url, self.auth_header())
+        future_request::get_async::<AkcClientError>(url, Self::auth_header(from))
             .and_then(move |response| match StatusCode::from_u16(response.status_raw().0) {
                           StatusCode::Ok => {
                 let data_wrapper: Wrapper = match serde_json::from_reader(response) {
@@ -61,7 +67,7 @@ impl Akc {
 
 
     pub fn get_paginated_with_params<Wrapper>
-        (self: &Akc,
+        (from: String,
          mut url: hyper::Url,
          query_params: Vec<(String, String)>)
          -> Box<Future<Item = (Wrapper::Data, u32), Error = AkcClientError> + std::marker::Send>
@@ -70,15 +76,14 @@ impl Akc {
               Wrapper::Data: 'static
     {
         url.query_pairs_mut().extend_pairs(query_params);
-        info!("{:?}", url);
-        future_request::get_async::<AkcClientError>(url, self.auth_header())
+        future_request::get_async::<AkcClientError>(url, Self::auth_header(from))
             .and_then(move |response| match StatusCode::from_u16(response.status_raw().0) {
                           StatusCode::Ok => {
                 let data_wrapper: Wrapper = match serde_json::from_reader(response) {
                     Ok(data_wrapper) => data_wrapper,
                     Err(error) => Err(error)?,
                 };
-                let total = data_wrapper.total().clone();
+                let total = data_wrapper.total();
                 Ok((data_wrapper.data(), total))
             }
                           _ => {
@@ -92,34 +97,100 @@ impl Akc {
             .boxed()
     }
 
-    pub fn get_all_pages_sync_parallel<Wrapper>
-        (self: &Akc,
-         url: hyper::Url)
-           -> Result<Vec<<<Wrapper as DataWrapper>::Data as Collection>::Collected>,
-                        AkcClientError>
+    pub fn get_paginated_with_pagination_info<Wrapper>
+         (from: String,
+             mut url: hyper::Url,
+         offset: u32,
+     page_count: u32)
+         -> Box<Future<Item = (Wrapper::Data, (u32, u32)),
+          Error = AkcClientError> + std::marker::Send>
         where Wrapper: PaginatedWrapper + DataWrapper,
               Wrapper: serde::de::DeserializeOwned,
-              Wrapper::Data: 'static,
-              Wrapper::Data: Collection,
-              <<Wrapper as DataWrapper>::Data as Collection>::Collected: 'static,
-              Vec<<<Wrapper as DataWrapper>::Data as Collection>::Collected>: 'static
+              Wrapper::Data: 'static
+    {
+        url.query_pairs_mut()
+            .append_pair("offset", &offset.to_string())
+            .append_pair("count", &page_count.to_string());
+        future_request::get_async::<AkcClientError>(url, Self::auth_header(from))
+            .and_then(move |response| match StatusCode::from_u16(response.status_raw().0) {
+                          StatusCode::Ok => {
+                let data_wrapper: Wrapper = match serde_json::from_reader(response) {
+                    Ok(data_wrapper) => data_wrapper,
+                    Err(error) => Err(error)?,
+                };
+                let count = data_wrapper.count();
+                Ok((data_wrapper.data(), (offset + page_count, count)))
+            }
+                          _ => {
+                let error_wrapper: ErrorWrapper = match serde_json::from_reader(response) {
+                    Ok(error_wrapper) => error_wrapper,
+                    Err(error) => Err(error)?,
+                };
+                Err(error_wrapper)?
+            }
+                      })
+            .boxed()
+    }
+
+    pub fn get_all_pages_async_sequential<Wrapper>
+         (from: String, url: hyper::Url)
+         -> Box<Future<Item = Vec<<<Wrapper as DataWrapper>::Data as Collection>::Collected>,
+         Error = AkcClientError> + std::marker::Send>
+                 where Wrapper: PaginatedWrapper + DataWrapper,
+              Wrapper: serde::de::DeserializeOwned,
+              Wrapper::Data: Collection + 'static,
     {
         let page_count = 100;
-        let page_0_future =
-            self.get_paginated_with_params::<Wrapper>(url.clone(),
-                                                      vec![("offset".to_string(),
+        let stream = stream::unfold((0, page_count), move |state| if state.1 < page_count {
+            None
+        } else {
+            let fut = Self::get_paginated_with_pagination_info::<Wrapper>(from.clone(),
+                                                                          url.clone(),
+                                                                          state.0,
+                                                                          state.1);
+            Some(fut)
+        });
+
+        stream
+            .collect()
+            .and_then(|pages| {
+                          let mut acc = vec![];
+                          for page in pages {
+                              acc.extend(page.items());
+                          }
+
+                          Ok(acc)
+                      })
+            .boxed()
+    }
+
+    pub fn get_all_pages_async_parallel<Wrapper>
+        (from: String,
+         url: hyper::Url)
+            -> Box<Future<Item = Vec<<<Wrapper as DataWrapper>::Data as Collection>::Collected>,
+            Error = AkcClientError> + std::marker::Send>
+        where Wrapper: PaginatedWrapper + DataWrapper,
+              Wrapper: serde::de::DeserializeOwned,
+              Wrapper::Data: Collection + 'static,
+    {
+        let page_count = 100;
+        let page_0_future = Self::get_paginated_with_params::<Wrapper>(from.clone(),
+                                                                       url.clone(),
+                                                                       vec![("offset".to_string(),
                                                             "0".to_string()),
                                                            ("count".to_string(),
                                                             page_count.to_string())]);
-        let all_other_futures = page_0_future
+        page_0_future
             .and_then(move |page_0| {
                 let mut future_pages = vec![];
                 for page in 0..(page_0.1 / page_count) {
                     let params = vec![("offset".to_string(),
                                        ((page + 1) * page_count).to_string()),
                                       ("count".to_string(), page_count.to_string())];
-                    future_pages.push(self.get_paginated_with_params::<Wrapper>(url.clone(),
-                                                                                params))
+                    future_pages.push(Self::get_paginated_with_params::<Wrapper>(from.clone(),
+                                                                                 url.clone(),
+                                                                                 params)
+                                              .and_then(move |page| Ok(page.0)))
                 }
                 join_all(future_pages).map(move |pages| (page_0.0, pages))
             })
@@ -127,13 +198,12 @@ impl Akc {
                 let mut acc = vec![];
                 acc.extend(pages.0.items());
                 for page in pages.1 {
-                    acc.extend(page.0.items());
+                    acc.extend(page.items());
                 }
 
                 Ok(acc)
-            });
-        let pages_n = all_other_futures.wait();
-        pages_n
+            })
+            .boxed()
     }
 }
 
@@ -162,6 +232,7 @@ macro_rules! data_wrapper {
 pub trait PaginatedWrapper {
     type Collected: std::marker::Send;
     fn total(self: &Self) -> u32;
+    fn count(self: &Self) -> u32;
 }
 pub trait Collection {
     type Collected: std::marker::Send;
@@ -174,6 +245,7 @@ macro_rules! paginated_wrapper {
         struct $w {
             data: $d,
             total: u32,
+            count: u32,
         }
 
         impl helpers::DataWrapper for $w {
@@ -187,6 +259,9 @@ macro_rules! paginated_wrapper {
             type Collected = $i;
             fn total(self: &Self) -> u32 {
                 self.total
+            }
+            fn count(self: &Self) -> u32 {
+                self.count
             }
         }
 
