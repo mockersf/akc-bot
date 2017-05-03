@@ -2,3 +2,5 @@
 mod lib;
 
 pub mod hipchat;
+
+pub mod test;

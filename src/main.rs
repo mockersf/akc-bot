@@ -114,6 +114,21 @@ fn main() {
                 handlers::hipchat::ReceiveNotification::new(),
                 "hipchat_notification");
 
+    router.post("/test/:from",
+                handlers::test::SetTokenForContext::new(),
+                "set_token");
+    router.get("/test/:from/user",
+               handlers::test::GetUserFromContext::new(),
+               "get_user_for_token");
+    router.get("/test/:from/devices",
+               handlers::test::GetDevicesFromContext::new(),
+               "get_devices_for_token");
+    router.get("/test/:from/devicetypes",
+               handlers::test::GetDeviceTypesFromContext::new(),
+               "get_devicetypes_for_token");
+
+
+
     let mut chain = Chain::new(router);
     chain.link_before(logger_before);
     chain.link_after(middlewares::Default404);
