@@ -24,6 +24,7 @@ extern crate ini;
 #[macro_use]
 extern crate lazy_static;
 
+mod log_message;
 mod middlewares;
 mod handlers;
 mod clients;
@@ -79,6 +80,10 @@ impl Database {
     }
     pub fn get_token(&self, key: String) -> &::clients::akc::token::Token {
         &self.tokens[&key]
+    }
+
+    pub fn get_token_option(&self, key: String) -> Option<&::clients::akc::token::Token> {
+        self.tokens.get(&key)
     }
 }
 lazy_static! {

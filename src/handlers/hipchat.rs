@@ -9,6 +9,8 @@ use futures::Future;
 
 use handlers::lib::my_error::MyError;
 
+use DATABASE;
+
 #[derive(Deserialize, Debug, Clone)]
 struct User {
     name: String,
@@ -59,6 +61,7 @@ struct NotificationResponse {
 #[serde(rename_all = "lowercase")]
 enum Color {
     Green,
+    Yellow,
 }
 use handlers::hipchat::Color::*;
 
@@ -67,18 +70,35 @@ create_handler!(ReceiveNotification,
     let struct_body = req.get::<bodyparser::Struct<Notification>>();
     match struct_body {
         Ok(Some(struct_body)) => {
-            info!("Parsed body:\n{:?}", struct_body);
-            let message = struct_body.item.message.unwrap().message;
-            let wit_ai_response_future = WitAi::get(&message);
-            info!("sent request to wit.ai");
-            let wit_ai_response = wit_ai_response_future.wait().unwrap();
-            let message = serde_json::to_string(&wit_ai_response).unwrap();
-            Ok(Response::with((status::Ok,
-                               serde_json::to_string(&NotificationResponse {
-                                                          message,
-                                                          color: Green,
-                                                      })
-                                       .unwrap())))
+            info!("Parsed body: {:?}", struct_body);
+            let context_identifier = format!("hipchatroom-{}", struct_body.item.room.unwrap().id);
+            match DATABASE
+                      .lock()
+                      .unwrap()
+                      .get_token_option(context_identifier) {
+                Some(_) => {
+                    let message = struct_body.item.message.unwrap().message;
+                    let wit_ai_response_future = WitAi::get(&message);
+                    info!("sent request to wit.ai");
+                    let wit_ai_response = wit_ai_response_future.wait().unwrap();
+                    let message = serde_json::to_string(&wit_ai_response).unwrap();
+                    Ok(Response::with((status::Ok,
+                                       serde_json::to_string(&NotificationResponse {
+                                                                  message,
+                                                                  color: Green,
+                                                              })
+                                               .unwrap())))
+                }
+                None => {
+                    Ok(Response::with((status::Ok,
+                                       serde_json::to_string(&NotificationResponse {
+                                                                  message: "This room is not authenticated".to_string(),
+                                                                  color: Yellow,
+                                                              })
+                                               .unwrap())))
+                }
+
+            }
         }
         Ok(None) => MyError::http_error(status::BadRequest, "missing body"),
         Err(err) => {
