@@ -4,6 +4,7 @@ mod helpers;
 mod error;
 mod user;
 mod device;
+mod device_type;
 pub mod token;
 
 #[derive(Debug, Clone)]
