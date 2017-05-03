@@ -6,6 +6,7 @@ extern crate time;
 
 extern crate iron;
 extern crate router;
+extern crate urlencoded;
 
 #[macro_use]
 extern crate serde_derive;
@@ -35,8 +36,9 @@ use logger::Logger;
 use log::{LogRecord, LogLevelFilter};
 use env_logger::LogBuilder;
 
+use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use futures_cpupool::CpuPool;
-
 use ini::Ini;
 
 struct Configuration {
@@ -63,9 +65,6 @@ lazy_static! {
         CpuPool::new_num_cpus()
     };
 }
-
-use std::collections::HashMap;
-use std::sync::{Arc, Mutex};
 
 #[derive(Clone, Debug)]
 pub struct Database {

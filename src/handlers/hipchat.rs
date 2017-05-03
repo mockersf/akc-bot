@@ -63,7 +63,6 @@ enum Color {
 use handlers::hipchat::Color::*;
 
 create_handler!(ReceiveNotification,
-                [],
                 |_: &ReceiveNotification, req: &mut Request| {
     let struct_body = req.get::<bodyparser::Struct<Notification>>();
     match struct_body {
