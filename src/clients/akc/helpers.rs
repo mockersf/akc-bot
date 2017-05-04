@@ -276,6 +276,7 @@ macro_rules! paginated_wrapper {
         }
 
         #[derive(Deserialize, Serialize, Debug, Clone)]
+        #[serde(rename_all = "camelCase")]
         pub struct $d {
             $n: Vec<$i>,
         }

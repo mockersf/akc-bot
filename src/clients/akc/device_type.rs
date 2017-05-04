@@ -5,7 +5,7 @@ use clients::akc::Akc;
 use clients::akc::error::AkcClientError;
 use clients::akc::helpers;
 
-paginated_wrapper!(DataDeviceTypes, DeviceTypes, deviceTypes, DeviceType);
+paginated_wrapper!(DataDeviceTypes, DeviceTypes, device_types, DeviceType);
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct DeviceType {
