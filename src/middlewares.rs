@@ -27,6 +27,8 @@ impl AfterMiddleware for JsonResponse {
     }
 }
 
+use log_message;
+
 pub struct ErrorLogger;
 impl AfterMiddleware for ErrorLogger {
     fn after(&self, _: &mut Request, res: Response) -> IronResult<Response> {
@@ -41,7 +43,7 @@ impl AfterMiddleware for ErrorLogger {
                 Err(e) => error!("error reading response body: {}", e),
             };
             let body = String::from_utf8(body).unwrap();
-            warn!("there was an error: {:?}", body);
+            warn!("{}", log_message::LogMessage::new(&body));
             Response::with((other, body))
         }
            })
