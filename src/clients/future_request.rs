@@ -26,3 +26,21 @@ pub fn get_async<Error: 'static>
                   })
         .boxed()
 }
+
+pub fn post_async<Error: 'static>
+    (url: Url,
+     headers: Headers,
+     body: String)
+     -> Box<Future<Item = Response, Error = Error> + std::marker::Send>
+    where Error: From<hyper::Error> + std::marker::Send
+{
+    REQUEST_CPU_POOL
+        .spawn_fn(move || {
+                      let ssl = NativeTlsClient::new().unwrap();
+                      let connector = HttpsConnector::new(ssl);
+                      let client = Client::with_connector(connector);
+                      info!("calling POST {:?}", url);
+                      Ok(try!(client.post(url).headers(headers).body(&body).send()))
+                  })
+        .boxed()
+}
