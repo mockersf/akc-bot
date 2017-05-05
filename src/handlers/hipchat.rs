@@ -1,11 +1,11 @@
 use iron::{Handler, status, IronResult, Response, Request};
 use bodyparser;
-
 use iron::prelude::*;
 use serde_json;
+use futures::Future;
 
 use clients::witai::WitAi;
-use futures::Future;
+use sami;
 
 use handlers::lib::my_error::MyError;
 
@@ -63,15 +63,21 @@ enum Color {
     Green,
     Yellow,
     Blue,
+    Red,
 }
-use handlers::hipchat::Color::*;
 
 use CONFIGURATION;
 
-fn generate_response(from: String, wit_ai_response: ::clients::witai::Response) -> String {
-    info!("from: {:?}", from);
-    info!("wit_ai_response: {:?}", wit_ai_response);
-    ::clients::akc::Akc::user_self(from).wait().unwrap().full_name
+fn notification_from_message(message: sami::MessageToUser) -> NotificationResponse {
+    NotificationResponse {
+        message: message.message,
+        color: match message.status {
+            sami::Status::Info => Color::Blue,
+            sami::Status::Confirmation => Color::Green,
+            sami::Status::Error => Color::Red,
+            sami::Status::ActionRequired => Color::Yellow,
+        }
+    }
 }
 
 create_handler!(ReceiveNotification,
@@ -92,19 +98,17 @@ create_handler!(ReceiveNotification,
                 let trigger = struct_body.item.message.unwrap().message;
                 let wit_ai_response_future = WitAi::get(&trigger);
                 let wit_ai_response = wit_ai_response_future.wait().unwrap();
-                let message = generate_response(context_identifier, wit_ai_response);
+                let message = sami::generate_response(context_identifier, wit_ai_response);
                 Ok(Response::with((status::Ok,
-                                   serde_json::to_string(&NotificationResponse {
-                                                              message,
-                                                              color: Green,
-                                                          })
+                                   serde_json::to_string(&notification_from_message(message))
                                            .unwrap())))
             } else {
                 let signin_message = format!("This room is not authenticated. Please <a href=\"https://accounts.artik.cloud/authorize?client_id={}&amp;state={}&amp;response_type=code\">sign in</a>.", CONFIGURATION.akc_appid, context_identifier);
+
                 Ok(Response::with((status::Ok,
                                    serde_json::to_string(&NotificationResponse {
                                                               message: signin_message,
-                                                              color: Yellow,
+                                                              color: Color::Yellow,
                                                           })
                                            .unwrap())))
             }

@@ -28,6 +28,7 @@ mod log_message;
 mod middlewares;
 mod handlers;
 mod clients;
+mod sami;
 
 use std::env;
 use iron::prelude::Chain;
