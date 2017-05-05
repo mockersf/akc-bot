@@ -45,18 +45,25 @@ use ini::Ini;
 struct Configuration {
     wit_ai_token: String,
     version: String,
+    akc_appid: String,
+    akc_appsecret: String,
 }
 
 lazy_static! {
     static ref CONFIGURATION: Configuration = {
         info!("reading configuration");
         let conf = Ini::load_from_file("conf.ini").unwrap();
-        let section = conf.section(Some("WitAI".to_owned())).unwrap();
-        let token = section.get("token").unwrap();
-        let version = section.get("version").unwrap();
+        let witai_section = conf.section(Some("WitAI".to_owned())).unwrap();
+        let token = witai_section.get("token").unwrap();
+        let version = witai_section.get("version").unwrap();
+        let akc_section = conf.section(Some("AKC".to_owned())).unwrap();
+        let akc_appid = akc_section.get("appId").unwrap();
+        let akc_appsecret = akc_section.get("appSecret").unwrap();
         Configuration {
             wit_ai_token: token.to_owned(),
             version: version.to_owned(),
+            akc_appid: akc_appid.to_owned(),
+            akc_appsecret: akc_appsecret.to_owned(),
         }
     };
 }
@@ -76,13 +83,10 @@ impl Database {
         Database { tokens: HashMap::new() }
     }
     pub fn add_token(&mut self, from: String, token: ::clients::akc::token::Token) {
+        info!("setting token {} - {:?}", from, token);
         self.tokens.insert(from, token);
     }
-    pub fn get_token(&self, key: String) -> &::clients::akc::token::Token {
-        &self.tokens[&key]
-    }
-
-    pub fn get_token_option(&self, key: String) -> Option<&::clients::akc::token::Token> {
+    pub fn get_token(&self, key: String) -> Option<&::clients::akc::token::Token> {
         self.tokens.get(&key)
     }
 }
@@ -118,6 +122,10 @@ fn main() {
     router.post("/hipchat/notification",
                 handlers::hipchat::ReceiveNotification::new(),
                 "hipchat_notification");
+
+    router.get("/akc/auth",
+               handlers::akc::ExchangeToken::new(),
+               "akc_exchange_token");
 
     router.post("/test/:from",
                 handlers::test::SetTokenForContext::new(),

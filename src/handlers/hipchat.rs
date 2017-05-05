@@ -62,8 +62,17 @@ struct NotificationResponse {
 enum Color {
     Green,
     Yellow,
+    Blue,
 }
 use handlers::hipchat::Color::*;
+
+use CONFIGURATION;
+
+fn generate_response(from: String, wit_ai_response: ::clients::witai::Response) -> String {
+    info!("from: {:?}", from);
+    info!("wit_ai_response: {:?}", wit_ai_response);
+    ::clients::akc::Akc::user_self(from).wait().unwrap().full_name
+}
 
 create_handler!(ReceiveNotification,
                 |_: &ReceiveNotification, req: &mut Request| {
@@ -71,33 +80,33 @@ create_handler!(ReceiveNotification,
     match struct_body {
         Ok(Some(struct_body)) => {
             info!("Parsed body: {:?}", struct_body);
-            let context_identifier = format!("hipchatroom-{}-{}", struct_body.oauth_client_id, struct_body.item.room.unwrap().id);
-            match DATABASE
-                      .lock()
-                      .unwrap()
-                      .get_token_option(context_identifier) {
-                Some(_) => {
-                    let message = struct_body.item.message.unwrap().message;
-                    let wit_ai_response_future = WitAi::get(&message);
-                    info!("sent request to wit.ai");
-                    let wit_ai_response = wit_ai_response_future.wait().unwrap();
-                    let message = serde_json::to_string(&wit_ai_response).unwrap();
-                    Ok(Response::with((status::Ok,
-                                       serde_json::to_string(&NotificationResponse {
-                                                                  message,
-                                                                  color: Green,
-                                                              })
-                                               .unwrap())))
-                }
-                None => {
-                    Ok(Response::with((status::Ok,
-                                       serde_json::to_string(&NotificationResponse {
-                                                                  message: "This room is not authenticated".to_string(),
-                                                                  color: Yellow,
-                                                              })
-                                               .unwrap())))
-                }
-
+            let context_identifier = format!("hipchatroom-{}-{}",
+                                             struct_body.oauth_client_id,
+                                             struct_body.item.room.unwrap().id);
+            //wrapped to release lock but keep info on presence
+            let res = {
+                let locked = DATABASE.lock().unwrap();
+                locked.get_token(context_identifier.clone()).is_some()
+            };
+            if res {
+                let trigger = struct_body.item.message.unwrap().message;
+                let wit_ai_response_future = WitAi::get(&trigger);
+                let wit_ai_response = wit_ai_response_future.wait().unwrap();
+                let message = generate_response(context_identifier, wit_ai_response);
+                Ok(Response::with((status::Ok,
+                                   serde_json::to_string(&NotificationResponse {
+                                                              message,
+                                                              color: Green,
+                                                          })
+                                           .unwrap())))
+            } else {
+                let signin_message = format!("This room is not authenticated. Please <a href=\"https://accounts.artik.cloud/authorize?client_id={}&amp;state={}&amp;response_type=code\">sign in</a>.", CONFIGURATION.akc_appid, context_identifier);
+                Ok(Response::with((status::Ok,
+                                   serde_json::to_string(&NotificationResponse {
+                                                              message: signin_message,
+                                                              color: Yellow,
+                                                          })
+                                           .unwrap())))
             }
         }
         Ok(None) => MyError::http_error(status::BadRequest, "missing body"),

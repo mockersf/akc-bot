@@ -38,3 +38,12 @@ macro_rules! get_query_param {
         }
     }
 }
+
+macro_rules! get_query_params {
+    ( $r:expr$(, $e:expr )+ ) => {
+        match $r.get::<UrlEncodedQuery>() {
+            Ok(hashmap) => hashmap,
+            Err(_) => HashMap::new()
+        }
+    }
+}
