@@ -55,6 +55,28 @@ pub fn generate_response(from: String, nlp_response: NlpResponse) -> MessageToUs
                 status: Status::Info,
             }
         }
+        intent @ Intent::GetField => {
+            let device_indications = nlp_response
+                .device
+                .unwrap_or(vec!["no device specified".to_string()]);
+            let field_indication = nlp_response.field.unwrap_or("no field".to_string());
+            match find_device_with(from, &device_indications) {
+                Some(device) => {
+                    MessageToUser {
+                        intent: intent,
+                        data: vec![device.name, field_indication],
+                        status: Status::Error,
+                    }
+                }
+                None => {
+                    MessageToUser {
+                        intent: intent,
+                        data: vec![device_indications.join(" ")],
+                        status: Status::Error,
+                    }
+                }
+            }
+        }
         intent => {
             MessageToUser {
                 intent,
@@ -84,7 +106,7 @@ impl Default for Intent {
 #[derive(Default, Debug)]
 pub struct NlpResponse {
     pub intent: Intent,
-    pub device: Option<String>,
+    pub device: Option<Vec<String>>,
     pub value: Option<String>,
     pub field: Option<String>,
     pub meta: Option<Vec<String>>,
