@@ -1,6 +1,6 @@
 use std;
 use hyper;
-use hyper::header::{Headers, Authorization, Bearer};
+use hyper::header::Headers;
 use serde;
 use serde_json;
 use futures::future::*;
@@ -17,14 +17,7 @@ use DATABASE;
 impl Akc {
     fn auth_header(from: String) -> Headers {
         let mut headers = Headers::new();
-        headers.set(
-           Authorization(
-               Bearer {
-                   token: DATABASE.lock().unwrap().get_token(from)
-                       .map(|token| token.bearer()).unwrap_or("missing_bearer").to_owned()
-               }
-           )
-        );
+        if let Some(token) = DATABASE.lock().unwrap().get_token(from) { headers.set(token.bearer()) }
         headers
     }
 

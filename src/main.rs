@@ -77,17 +77,17 @@ lazy_static! {
 
 #[derive(Clone, Debug)]
 pub struct Database {
-    tokens: HashMap<String, ::clients::akc::token::Token>,
+    tokens: HashMap<String, ::clients::oauth2::Token>,
 }
 impl Database {
     pub fn new() -> Database {
         Database { tokens: HashMap::new() }
     }
-    pub fn add_token(&mut self, from: String, token: ::clients::akc::token::Token) {
+    pub fn add_token(&mut self, from: String, token: ::clients::oauth2::Token) {
         info!("setting token {} - {:?}", from, token);
         self.tokens.insert(from, token);
     }
-    pub fn get_token(&self, key: String) -> Option<&::clients::akc::token::Token> {
+    pub fn get_token(&self, key: String) -> Option<&::clients::oauth2::Token> {
         self.tokens.get(&key)
     }
 }

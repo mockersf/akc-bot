@@ -13,7 +13,7 @@ use handlers::lib::my_error::MyError;
 
 #[derive(Deserialize, Debug, Clone)]
 struct Token {
-    token: String,
+    access_token: String,
 }
 
 create_handler!(SetTokenForContext,
@@ -22,7 +22,7 @@ create_handler!(SetTokenForContext,
     match struct_body {
         Ok(Some(struct_body)) => {
             let from = get_path_param!(req, "from").to_string();
-            let token = ::clients::akc::token::Token::access_token(struct_body.token);
+            let token = ::clients::oauth2::Token::from_access_token(struct_body.access_token);
             DATABASE.lock().unwrap().add_token(from, token);
 
             Ok(Response::with(status::Created))
