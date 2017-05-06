@@ -9,9 +9,9 @@ paginated_wrapper!(DataDevices, Devices, devices, Device);
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct Device {
-    id: String,
-    dtid: String,
-    name: String,
+    pub id: String,
+    pub dtid: String,
+    pub name: String,
 }
 
 impl Akc {

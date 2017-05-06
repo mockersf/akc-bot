@@ -2,9 +2,9 @@
 mod helpers;
 
 mod error;
-mod user;
-mod device;
-mod device_type;
+pub mod user;
+pub mod device;
+pub mod device_type;
 
 #[derive(Debug, Clone)]
 pub struct Akc {}

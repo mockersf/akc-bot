@@ -15,6 +15,33 @@ pub struct MessageToUser {
     pub status: Status,
 }
 
+fn find_device_with(from: String,
+                    indications: &Vec<String>)
+                    -> Option<::clients::akc::device::Device> {
+    let uid = match ::clients::akc::Akc::user_self(from.clone()).wait() {
+        Ok(user) => user.id,
+        Err(err) => {
+            warn!("Error getting user: {:?}", err);
+            return None;
+        }
+    };
+    let mut devices = match ::clients::akc::Akc::devices_parallel(from.clone(), &uid).wait() {
+        Ok(devices) => devices,
+        Err(err) => {
+            warn!("Error getting user: {:?}", err);
+            return None;
+        }
+    };
+    for indication in indications {
+        devices = devices
+            .iter()
+            .filter(|device| device.name.to_lowercase().contains(indication))
+            .map(|device| device.clone())
+            .collect::<Vec<::clients::akc::device::Device>>();
+    }
+    devices.get(0).map(|d| d.clone())
+}
+
 pub fn generate_response(from: String, nlp_response: NlpResponse) -> MessageToUser {
     info!("{:?}", nlp_response);
     match nlp_response.intent {
