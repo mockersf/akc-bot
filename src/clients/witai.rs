@@ -46,6 +46,31 @@ impl From<Response> for ::sami::NlpResponse {
                             ..Default::default()
                         }
                     }
+                    ref intent_self if intent_self.len() == 1 && intent_self[0] == "get_field" => {
+                        ::sami::NlpResponse {
+                            intent: ::sami::Intent::GetField,
+                            device: response
+                                .entities
+                                .get("target")
+                                .map(|values| {
+                                         values
+                                             .iter()
+                                             .map(|value| value.value.to_lowercase().clone())
+                                             .collect::<Vec<String>>()
+                                     }),
+                            field: response
+                                .entities
+                                .get("field")
+                                .and_then(|values| {
+                                              values
+                                                  .get(0)
+                                                  .map(|value| {
+                                                           value.value.to_lowercase().clone()
+                                                       })
+                                          }),
+                            ..Default::default()
+                        }
+                    }
                     intents => {
                         ::sami::NlpResponse {
                             intent: ::sami::Intent::Unknown,
