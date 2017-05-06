@@ -73,6 +73,12 @@ fn notification_from_message(message: sami::MessageToUser) -> NotificationRespon
     NotificationResponse {
         message: match message.intent {
             ::sami::Intent::GetSelf => format!("You are connected as {}.", message.data[0]),
+            ::sami::Intent::GetField => match message.data.len() {
+                1 => format!("No device found for '{}'.", message.data[0]),
+                2 => format!("No field '{}' found for device '{}'.", message.data[1], message.data[0]),
+                3 => format!("{}'s {} is {}.", message.data[0], message.data[1], message.data[2]),
+                _ => "uuuh ?".to_string()
+            },
             ::sami::Intent::Unknown => format!("Unknown intent: {:?}", if !message.data.is_empty() {
                 message.data[0].clone()
             } else {
