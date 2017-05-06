@@ -91,10 +91,10 @@ impl WitAi {
     pub fn get(query: &str) -> Box<Future<Item = Response, Error = WitAiError>> {
         let mut url = Url::parse("https://api.wit.ai/message").unwrap();
         url.query_pairs_mut()
-            .append_pair("v", &CONFIGURATION.version)
+            .append_pair("v", &CONFIGURATION.witai_version)
             .append_pair("q", query);
         let mut headers = Headers::new();
-        headers.set(Authorization(format!("Bearer {}", CONFIGURATION.wit_ai_token).to_owned()));
+        headers.set(Authorization(format!("Bearer {}", CONFIGURATION.witai_token).to_owned()));
 
         future_request::get_async::<WitAiError>(url, headers)
             .and_then(|response| match serde_json::from_reader(response) {

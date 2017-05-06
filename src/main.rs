@@ -44,27 +44,34 @@ use futures_cpupool::CpuPool;
 use ini::Ini;
 
 struct Configuration {
-    wit_ai_token: String,
-    version: String,
+    witai_token: String,
+    witai_version: String,
     akc_appid: String,
     akc_appsecret: String,
+    hipchat_command: String,
 }
 
 lazy_static! {
     static ref CONFIGURATION: Configuration = {
         info!("reading configuration");
         let conf = Ini::load_from_file("conf.ini").unwrap();
+
         let witai_section = conf.section(Some("WitAI".to_owned())).unwrap();
-        let token = witai_section.get("token").unwrap();
-        let version = witai_section.get("version").unwrap();
+        let witai_token = witai_section.get("token").unwrap();
+        let witai_version = witai_section.get("version").unwrap();
+
         let akc_section = conf.section(Some("AKC".to_owned())).unwrap();
         let akc_appid = akc_section.get("appId").unwrap();
         let akc_appsecret = akc_section.get("appSecret").unwrap();
+
+        let hipchat_section = conf.section(Some("HipChat".to_owned())).unwrap();
+        let hipchat_command = hipchat_section.get("command").unwrap();
         Configuration {
-            wit_ai_token: token.to_owned(),
-            version: version.to_owned(),
+            witai_token: witai_token.to_owned(),
+            witai_version: witai_version.to_owned(),
             akc_appid: akc_appid.to_owned(),
             akc_appsecret: akc_appsecret.to_owned(),
+            hipchat_command: hipchat_command.to_owned(),
         }
     };
 }
