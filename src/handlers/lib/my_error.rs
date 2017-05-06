@@ -2,22 +2,13 @@ use uuid::Uuid;
 use iron::{status, IronResult, Response};
 use serde_json;
 
-/// Custom Error
 #[derive(Clone, Debug, Serialize)]
 pub struct MyError {
     id: String,
     error: String,
 }
 
-/// Helper methods for custom errors
 impl MyError {
-    /// Build a new custom error based on the provided message
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// assert_eq!(1, 2)
-    /// ```
     pub fn new(error_message: &str) -> MyError {
         MyError {
             error: error_message.to_string(),

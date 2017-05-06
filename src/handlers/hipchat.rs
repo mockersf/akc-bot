@@ -62,17 +62,26 @@ struct NotificationResponse {
 enum Color {
     Green,
     Yellow,
-    Blue,
+    Purple,
     Red,
 }
 
 use CONFIGURATION;
 
 fn notification_from_message(message: sami::MessageToUser) -> NotificationResponse {
+    info!("{:?}", message);
     NotificationResponse {
-        message: message.message,
+        message: match message.intent {
+            ::sami::Intent::GetSelf => format!("You are connected as {}.", message.data[0]),
+            ::sami::Intent::Unknown => format!("Unknown intent: {:?}", if !message.data.is_empty() {
+                message.data[0].clone()
+            } else {
+                "'no intent found'".to_string()
+            }),
+            intent => format!("{:?} not yet done", intent),
+        },
         color: match message.status {
-            sami::Status::Info => Color::Blue,
+            sami::Status::Info => Color::Purple,
             sami::Status::Confirmation => Color::Green,
             sami::Status::Error => Color::Red,
             sami::Status::ActionRequired => Color::Yellow,
@@ -97,7 +106,7 @@ create_handler!(ReceiveNotification,
             if res {
                 let trigger = struct_body.item.message.unwrap().message;
                 let wit_ai_response_future = WitAi::get(&trigger);
-                let wit_ai_response = wit_ai_response_future.wait().unwrap();
+                let wit_ai_response = sami::NplResponse::from(wit_ai_response_future.wait().unwrap());
                 let message = sami::generate_response(context_identifier, wit_ai_response);
                 Ok(Response::with((status::Ok,
                                    serde_json::to_string(&notification_from_message(message))
