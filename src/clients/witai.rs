@@ -24,8 +24,8 @@ pub struct Response {
     entities: HashMap<String, Vec<Value>>,
 }
 
-impl From<Response> for ::sami::NplResponse {
-    fn from(response: Response) -> ::sami::NplResponse {
+impl From<Response> for ::sami::NlpResponse {
+    fn from(response: Response) -> ::sami::NlpResponse {
         info!("{:?}", response);
         match response.entities.get("intent") {
             Some(values) => {
@@ -35,19 +35,19 @@ impl From<Response> for ::sami::NplResponse {
                     .collect::<Vec<String>>();
                 match values {
                     ref intent_self if intent_self.len() == 1 && intent_self[0] == "get_self" => {
-                        ::sami::NplResponse {
+                        ::sami::NlpResponse {
                             intent: ::sami::Intent::GetSelf,
                             ..Default::default()
                         }
                     }
                     ref intent_self if intent_self.len() == 1 && intent_self[0] == "logout" => {
-                        ::sami::NplResponse {
+                        ::sami::NlpResponse {
                             intent: ::sami::Intent::Logout,
                             ..Default::default()
                         }
                     }
                     intents => {
-                        ::sami::NplResponse {
+                        ::sami::NlpResponse {
                             intent: ::sami::Intent::Unknown,
                             meta: Some(intents),
                             ..Default::default()
@@ -56,7 +56,7 @@ impl From<Response> for ::sami::NplResponse {
                 }
             }
             None => {
-                ::sami::NplResponse {
+                ::sami::NlpResponse {
                     intent: ::sami::Intent::Unknown,
                     ..Default::default()
                 }

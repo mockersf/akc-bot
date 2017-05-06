@@ -15,9 +15,9 @@ pub struct MessageToUser {
     pub status: Status,
 }
 
-pub fn generate_response(from: String, npl_response: NplResponse) -> MessageToUser {
-    info!("{:?}", npl_response);
-    match npl_response.intent {
+pub fn generate_response(from: String, nlp_response: NlpResponse) -> MessageToUser {
+    info!("{:?}", nlp_response);
+    match nlp_response.intent {
         intent @ Intent::GetSelf => {
             MessageToUser {
                 intent: intent,
@@ -31,7 +31,7 @@ pub fn generate_response(from: String, npl_response: NplResponse) -> MessageToUs
         intent => {
             MessageToUser {
                 intent,
-                data: npl_response.meta.unwrap_or(vec![]),
+                data: nlp_response.meta.unwrap_or(vec![]),
                 status: Status::Error,
             }
         }
@@ -55,7 +55,7 @@ impl Default for Intent {
 }
 
 #[derive(Default, Debug)]
-pub struct NplResponse {
+pub struct NlpResponse {
     pub intent: Intent,
     pub device: Option<String>,
     pub value: Option<String>,
