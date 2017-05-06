@@ -74,11 +74,6 @@ impl From<hyper::Error> for WitAiError {
         WitAiError { msg: format!("couldn't contact wit.ai: {:?}", err) }
     }
 }
-impl From<std::io::Error> for WitAiError {
-    fn from(err: std::io::Error) -> WitAiError {
-        WitAiError { msg: format!("couldn't read response from wit.ai: {:?}", err) }
-    }
-}
 impl From<serde_json::Error> for WitAiError {
     fn from(err: serde_json::Error) -> WitAiError {
         WitAiError { msg: format!("error parsing json: {:?}", err) }

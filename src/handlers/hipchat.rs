@@ -94,7 +94,6 @@ create_handler!(ReceiveNotification,
     let struct_body = req.get::<bodyparser::Struct<Notification>>();
     match struct_body {
         Ok(Some(struct_body)) => {
-            info!("Parsed body: {:?}", struct_body);
             let context_identifier = format!("hipchatroom-{}-{}",
                                              struct_body.oauth_client_id,
                                              struct_body.item.room.unwrap().id);
