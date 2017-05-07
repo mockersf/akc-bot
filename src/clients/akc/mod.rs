@@ -5,6 +5,7 @@ mod error;
 pub mod user;
 pub mod device;
 pub mod device_type;
+pub mod snapshot;
 
 #[derive(Debug, Clone)]
 pub struct Akc {}

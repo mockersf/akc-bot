@@ -147,6 +147,9 @@ fn main() {
     router.get("/test/:from/devicetypes",
                handlers::test::GetDeviceTypesFromContext::new(),
                "get_devicetypes_for_token");
+    router.get("/test/:from/snapshot/:sdid",
+               handlers::test::GetSnapshotFromContext::new(),
+               "get_snapshot_for_device_for_token");
 
 
 
