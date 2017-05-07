@@ -65,15 +65,27 @@ impl FieldValue {
         }
     }
 }
+impl fmt::Display for FieldValue {
+    fn fmt(&self, fm: &mut fmt::Formatter) -> fmt::Result {
+        match (self.float, self.int, self.string.clone(), self.boolean) {
+            (Some(f), _, _, _) => write!(fm, "{:?}", f),
+            (_, Some(i), _, _) => write!(fm, "{:?}", i),
+            (_, _, Some(s), _) => write!(fm, "{:?}", s),
+            (_, _, _, Some(b)) => write!(fm, "{:?}", b),
+            (_, _, _, _) => write!(fm, "none"),
+        }
+
+    }
+}
 
 #[derive(Serialize, Default, Debug, Clone)]
 pub struct FieldData {
     #[serde(skip_serializing_if="Option::is_none")]
-    ts: Option<u64>,
+    pub ts: Option<u64>,
     #[serde(skip_serializing_if="Option::is_none")]
-    value: Option<FieldValue>,
+    pub value: Option<FieldValue>,
     #[serde(skip_serializing_if="Option::is_none")]
-    subfields: Option<HashMap<String, Box<FieldData>>>,
+    pub subfields: Option<HashMap<String, Box<FieldData>>>,
 }
 impl FieldData {
     fn leaf(value: FieldValue, ts: u64) -> FieldData {
@@ -270,9 +282,9 @@ impl<'de> Deserialize<'de> for FieldData {
 
 
 impl Akc {
-    pub fn snapshot(from: String,
-                    sdid: Vec<String>)
-                    -> Box<Future<Item = Vec<Snapshot>, Error = AkcClientError>> {
+    pub fn snapshots(from: String,
+                     sdid: Vec<String>)
+                     -> Box<Future<Item = Vec<Snapshot>, Error = AkcClientError>> {
         let url = Url::parse(&format!("{}/messages/snapshots", Self::base_url::<'static>()))
             .unwrap();
 

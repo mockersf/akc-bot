@@ -71,7 +71,7 @@ create_handler!(GetSnapshotFromContext,
                 |_: &GetSnapshotFromContext, req: &mut Request| {
                     let from = get_path_param!(req, "from").to_string();
                     let sdid = get_path_param!(req, "sdid").to_string();
-                    let future = ::clients::akc::Akc::snapshot(from, vec![sdid]);
+                    let future = ::clients::akc::Akc::snapshots(from, vec![sdid]);
                     Ok(Response::with((status::Ok,
                                        serde_json::to_string(&future.wait().unwrap()).unwrap())))
                 });
