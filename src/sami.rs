@@ -118,7 +118,7 @@ pub fn generate_response(from: String, nlp_response: NlpResponse) -> MessageToUs
                                 data: vec![device.name,
                                            field,
                                            field_data.value.unwrap().to_string()],
-                                status: Status::Error,
+                                status: Status::Info,
                             }
                         }
                         None => {
