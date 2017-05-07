@@ -15,17 +15,15 @@ pub struct MessageToUser {
     pub status: Status,
 }
 
-fn find_device_with(from: String,
-                    indications: &Vec<String>)
-                    -> Option<::clients::akc::device::Device> {
-    let uid = match ::clients::akc::Akc::user_self(from.clone()).wait() {
+fn find_device_with(from: &str, indications: &[String]) -> Option<::clients::akc::device::Device> {
+    let uid = match ::clients::akc::Akc::user_self(from.to_string()).wait() {
         Ok(user) => user.id,
         Err(err) => {
             warn!("Error getting user: {:?}", err);
             return None;
         }
     };
-    let mut devices = match ::clients::akc::Akc::devices_parallel(from.clone(), &uid).wait() {
+    let mut devices = match ::clients::akc::Akc::devices_parallel(from.to_string(), &uid).wait() {
         Ok(devices) => devices,
         Err(err) => {
             warn!("Error getting user: {:?}", err);
@@ -36,10 +34,10 @@ fn find_device_with(from: String,
         devices = devices
             .iter()
             .filter(|device| device.name.to_lowercase().contains(indication))
-            .map(|device| device.clone())
+            .cloned()
             .collect::<Vec<::clients::akc::device::Device>>();
     }
-    devices.get(0).map(|d| d.clone())
+    devices.get(0).cloned()
 }
 
 pub fn generate_response(from: String, nlp_response: NlpResponse) -> MessageToUser {
@@ -56,11 +54,14 @@ pub fn generate_response(from: String, nlp_response: NlpResponse) -> MessageToUs
             }
         }
         intent @ Intent::GetField => {
-            let device_indications = nlp_response
-                .device
-                .unwrap_or(vec!["no device specified".to_string()]);
-            let field_indication = nlp_response.field.unwrap_or("no field".to_string());
-            match find_device_with(from, &device_indications) {
+            let device_indications =
+                nlp_response
+                    .device
+                    .unwrap_or_else(|| vec!["no device specified".to_string()]);
+            let field_indication = nlp_response
+                .field
+                .unwrap_or_else(|| "no field".to_string());
+            match find_device_with(&from, &device_indications) {
                 Some(device) => {
                     MessageToUser {
                         intent: intent,
@@ -80,7 +81,7 @@ pub fn generate_response(from: String, nlp_response: NlpResponse) -> MessageToUs
         intent => {
             MessageToUser {
                 intent,
-                data: nlp_response.meta.unwrap_or(vec![]),
+                data: nlp_response.meta.unwrap_or_else(|| vec![]),
                 status: Status::Error,
             }
         }

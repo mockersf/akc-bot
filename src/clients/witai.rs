@@ -7,7 +7,6 @@ use hyper;
 use clients::future_request;
 
 use CONFIGURATION;
-use std;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct Value {

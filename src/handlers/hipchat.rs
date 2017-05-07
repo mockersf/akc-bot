@@ -110,7 +110,7 @@ create_handler!(ReceiveNotification,
             };
             if res {
                 let trigger = &struct_body.item.message.unwrap().message[(CONFIGURATION.hipchat_command.len() + 1)..];
-                let wit_ai_response_future = WitAi::get(&trigger);
+                let wit_ai_response_future = WitAi::get(trigger);
                 let wit_ai_response = sami::NlpResponse::from(wit_ai_response_future.wait().unwrap());
                 let message = sami::generate_response(context_identifier, wit_ai_response);
                 Ok(Response::with((status::Ok,
