@@ -37,41 +37,77 @@ create_handler!(SetTokenForContext,
 
 create_handler!(GetUserFromContext,
                 |_: &GetUserFromContext, req: &mut Request| {
-                    let from = get_path_param!(req, "from").to_string();
-                    Ok(Response::with((status::Ok,
-            serde_json::to_string(&::clients::akc::Akc::user_self(from).wait().unwrap()).unwrap())))
-                });
+    let from = get_path_param!(req, "from").to_string();
+    let akc_access_token = {
+        let locked = DATABASE.lock().unwrap();
+        locked.get_token(from.clone()).cloned()
+    };
+    if let Some(akc_access_token) = akc_access_token {
+        Ok(Response::with((status::Ok,
+                           serde_json::to_string(&::clients::akc::Akc::user_self(akc_access_token.clone())
+                                                      .wait()
+                                                      .unwrap())
+                                   .unwrap())))
+    } else {
+        Ok(Response::with((status::BadRequest, "context not fount")))
+    }
+});
 
 create_handler!(GetDevicesFromContext,
                 |_: &GetDevicesFromContext, req: &mut Request| {
     let from = get_path_param!(req, "from").to_string();
-    let uid = ::clients::akc::Akc::user_self(from.clone())
+    let akc_access_token = {
+        let locked = DATABASE.lock().unwrap();
+        locked.get_token(from.clone()).cloned()
+    };
+    if let Some(akc_access_token) = akc_access_token {
+    let uid = ::clients::akc::Akc::user_self(akc_access_token.clone())
         .wait()
         .unwrap()
         .id;
     let future = match get_query_param!(req, "sequential") {
-        Some(_) => ::clients::akc::Akc::devices_sequential(from, &uid),
-        None => ::clients::akc::Akc::devices_parallel(from, &uid),
+        Some(_) => ::clients::akc::Akc::devices_sequential(akc_access_token.clone(), &uid),
+        None => ::clients::akc::Akc::devices_parallel(akc_access_token.clone(), &uid),
     };
 
     Ok(Response::with((status::Ok, serde_json::to_string(&future.wait().unwrap()).unwrap())))
+        } else {
+        Ok(Response::with((status::BadRequest, "context not fount")))
+    }
+
 });
 
 create_handler!(GetDeviceTypesFromContext,
                 |_: &GetDeviceTypesFromContext, req: &mut Request| {
-    let from = get_path_param!(req, "from").to_string();
-    let future = match get_query_param!(req, "sequential") {
-        Some(_) => ::clients::akc::Akc::device_types_sequential(from),
-        None => ::clients::akc::Akc::device_types_parallel(from),
+                    let from = get_path_param!(req, "from").to_string();
+    let akc_access_token = {
+        let locked = DATABASE.lock().unwrap();
+        locked.get_token(from.clone()).cloned()
     };
-    Ok(Response::with((status::Ok, serde_json::to_string(&future.wait().unwrap()).unwrap())))
-});
+    if let Some(akc_access_token) = akc_access_token {
+                    let future = match get_query_param!(req, "sequential") {
+                        Some(_) => ::clients::akc::Akc::device_types_sequential(akc_access_token.clone()),
+                        None => ::clients::akc::Akc::device_types_parallel(akc_access_token.clone()),
+                    };
+                    Ok(Response::with((status::Ok, serde_json::to_string(&future.wait().unwrap()).unwrap())))
+                            } else {
+        Ok(Response::with((status::BadRequest, "context not fount")))
+    }
+
+                });
 
 create_handler!(GetSnapshotFromContext,
                 |_: &GetSnapshotFromContext, req: &mut Request| {
                     let from = get_path_param!(req, "from").to_string();
                     let sdid = get_path_param!(req, "sdid").to_string();
-                    let future = ::clients::akc::Akc::snapshots(from, vec![sdid]);
-                    Ok(Response::with((status::Ok,
-                                       serde_json::to_string(&future.wait().unwrap()).unwrap())))
+    let akc_access_token = {
+        let locked = DATABASE.lock().unwrap();
+        locked.get_token(from.clone()).cloned()
+    };
+    if let Some(akc_access_token) = akc_access_token {
+                            let future = ::clients::akc::Akc::snapshots(akc_access_token.clone(), vec![sdid]);
+                    Ok(Response::with((status::Ok, serde_json::to_string(&future.wait().unwrap()).unwrap())))
+        } else {
+        Ok(Response::with((status::BadRequest, "context not fount")))
+    }
                 });

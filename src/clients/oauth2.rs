@@ -110,10 +110,7 @@ pub struct Oauth2 {
     token_url: Url,
 }
 impl Oauth2 {
-    pub fn new(app_id: String,
-               app_secret: String,
-               token_url: &str)
-               -> Result<Oauth2, iron::url::ParseError> {
+    pub fn new(app_id: String, app_secret: String, token_url: &str) -> Result<Oauth2, iron::url::ParseError> {
         Ok(Oauth2 {
                app_id,
                app_secret,
@@ -140,16 +137,14 @@ impl Oauth2 {
             .send()?;
         match StatusCode::from_u16(response.status_raw().0) {
             StatusCode::Ok => {
-                let token: Result<ExternalToken, serde_json::Error> =
-                    serde_json::from_reader(response);
+                let token: Result<ExternalToken, serde_json::Error> = serde_json::from_reader(response);
                 match token {
                     Ok(data) => Ok(Token::new(data)),
                     Err(error) => Err(error)?,
                 }
             }
             _ => {
-                let token: Result<Oauth2Error, serde_json::Error> =
-                    serde_json::from_reader(response);
+                let token: Result<Oauth2Error, serde_json::Error> = serde_json::from_reader(response);
                 match token {
                     Ok(error) => Err(error)?,
                     Err(error) => Err(error)?,

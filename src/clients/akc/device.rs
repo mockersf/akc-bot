@@ -15,16 +15,12 @@ pub struct Device {
 }
 
 impl Akc {
-    pub fn devices_parallel(from: String,
-                            uid: &str)
-                            -> Box<Future<Item = Vec<Device>, Error = AkcClientError>> {
+    pub fn devices_parallel(token: ::clients::oauth2::Token, uid: &str) -> Box<Future<Item = Vec<Device>, Error = AkcClientError>> {
         let url = Url::parse(&format!("{}/users/{}/devices", Self::base_url(), uid)).unwrap();
-        Self::get_all_pages_async_parallel::<DataDevices>(from, url)
+        Self::get_all_pages_async_parallel::<DataDevices>(token, url)
     }
-    pub fn devices_sequential(from: String,
-                              uid: &str)
-                              -> Box<Future<Item = Vec<Device>, Error = AkcClientError>> {
+    pub fn devices_sequential(token: ::clients::oauth2::Token, uid: &str) -> Box<Future<Item = Vec<Device>, Error = AkcClientError>> {
         let url = Url::parse(&format!("{}/users/{}/devices", Self::base_url(), uid)).unwrap();
-        Self::get_all_pages_async_sequential::<DataDevices>(from, url)
+        Self::get_all_pages_async_sequential::<DataDevices>(token, url)
     }
 }

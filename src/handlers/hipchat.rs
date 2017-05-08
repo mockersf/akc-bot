@@ -73,17 +73,31 @@ fn notification_from_message(message: sami::MessageToUser) -> NotificationRespon
     NotificationResponse {
         message: match message.intent {
             ::sami::Intent::GetSelf => format!("You are connected as {}.", message.data[0]),
-            ::sami::Intent::GetField => match message.data.len() {
-                1 => format!("No device found for '{}'.", message.data[0]),
-                2 => format!("No field '{}' found for device '{}'.", message.data[1], message.data[0]),
-                3 => format!("{}'s {} is {}.", message.data[0], message.data[1], message.data[2]),
-                _ => "uuuh ?".to_string()
-            },
-            ::sami::Intent::Unknown => format!("Unknown intent: {:?}", if !message.data.is_empty() {
-                message.data[0].clone()
-            } else {
-                "'no intent found'".to_string()
-            }),
+            ::sami::Intent::GetField => {
+                match message.data.len() {
+                    1 => format!("No device found for '{}'.", message.data[0]),
+                    2 => {
+                        format!("No field '{}' found for device '{}'.",
+                                message.data[1],
+                                message.data[0])
+                    }
+                    3 => {
+                        format!("{}'s {} is {}.",
+                                message.data[0],
+                                message.data[1],
+                                message.data[2])
+                    }
+                    _ => "uuuh ?".to_string(),
+                }
+            }
+            ::sami::Intent::Unknown => {
+                format!("Unknown intent: {:?}",
+                        if !message.data.is_empty() {
+                            message.data[0].clone()
+                        } else {
+                            "'no intent found'".to_string()
+                        })
+            }
             intent => format!("{:?} not yet done", intent),
         },
         color: match message.status {
@@ -91,7 +105,7 @@ fn notification_from_message(message: sami::MessageToUser) -> NotificationRespon
             sami::Status::Confirmation => Color::Green,
             sami::Status::Error => Color::Red,
             sami::Status::ActionRequired => Color::Yellow,
-        }
+        },
     }
 }
 
@@ -104,20 +118,21 @@ create_handler!(ReceiveNotification,
                                              struct_body.oauth_client_id,
                                              struct_body.item.room.unwrap().id);
             //wrapped to release lock but keep info on presence
-            let res = {
+            let akc_access_token = {
                 let locked = DATABASE.lock().unwrap();
-                locked.get_token(context_identifier.clone()).is_some()
+                locked.get_token(context_identifier.clone()).cloned()
             };
-            if res {
+            if let Some(akc_access_token) = akc_access_token {
                 let trigger = &struct_body.item.message.unwrap().message[(CONFIGURATION.hipchat_command.len() + 1)..];
                 let wit_ai_response_future = WitAi::get(trigger);
                 let wit_ai_response = sami::NlpResponse::from(wit_ai_response_future.wait().unwrap());
-                let message = sami::generate_response(context_identifier, wit_ai_response);
-                Ok(Response::with((status::Ok,
-                                   serde_json::to_string(&notification_from_message(message))
-                                           .unwrap())))
+                let message = sami::generate_response(akc_access_token.clone(), wit_ai_response);
+                Ok(Response::with((status::Ok, serde_json::to_string(&notification_from_message(message)).unwrap())))
             } else {
-                let signin_message = format!("This room is not authenticated. Please <a href=\"https://accounts.artik.cloud/authorize?client_id={}&amp;state={}&amp;response_type=code\">sign in</a>.", CONFIGURATION.akc_appid, context_identifier);
+                let signin_message = format!("This room is not authenticated.
+                Please <a href=\"https://accounts.artik.cloud/authorize?client_id={}&amp;state={}&amp;response_type=code\">sign in</a>.",
+                                             CONFIGURATION.akc_appid,
+                                             context_identifier);
 
                 Ok(Response::with((status::Ok,
                                    serde_json::to_string(&NotificationResponse {

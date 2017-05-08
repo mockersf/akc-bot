@@ -17,15 +17,15 @@ pub struct MessageToUser {
     pub status: Status,
 }
 
-fn find_device_with(from: &str, indications: &[String]) -> Option<::clients::akc::device::Device> {
-    let uid = match ::clients::akc::Akc::user_self(from.to_string()).wait() {
+fn find_device_with(akc_token: ::clients::oauth2::Token, indications: &[String]) -> Option<::clients::akc::device::Device> {
+    let uid = match ::clients::akc::Akc::user_self(akc_token.clone()).wait() {
         Ok(user) => user.id,
         Err(err) => {
             warn!("Error getting user: {:?}", err);
             return None;
         }
     };
-    let mut devices = match ::clients::akc::Akc::devices_parallel(from.to_string(), &uid).wait() {
+    let mut devices = match ::clients::akc::Akc::devices_parallel(akc_token.clone(), &uid).wait() {
         Ok(devices) => devices,
         Err(err) => {
             warn!("Error getting user: {:?}", err);
@@ -42,13 +42,11 @@ fn find_device_with(from: &str, indications: &[String]) -> Option<::clients::akc
     devices.get(0).cloned()
 }
 
-fn find_field_value_with(from: &str,
+fn find_field_value_with(akc_token: ::clients::oauth2::Token,
                          device_id: &str,
                          field_indication: &str)
                          -> Option<(String, Box<::clients::akc::snapshot::FieldData>)> {
-    let snapshots = match ::clients::akc::Akc::snapshots(from.to_string(),
-                                                         vec![device_id.to_string()])
-                  .wait() {
+    let snapshots = match ::clients::akc::Akc::snapshots(akc_token, vec![device_id.to_string()]).wait() {
         Ok(snapshots) => snapshots,
         Err(err) => {
             warn!("Error getting snapshot for device {:?}: {:?}",
@@ -96,13 +94,13 @@ fn recur_find_field(subfields: &HashMap<String, Box<::clients::akc::snapshot::Fi
     None
 }
 
-pub fn generate_response(from: String, nlp_response: NlpResponse) -> MessageToUser {
+pub fn generate_response(akc_token: ::clients::oauth2::Token, nlp_response: NlpResponse) -> MessageToUser {
     info!("{:?}", nlp_response);
     match nlp_response.intent {
         intent @ Intent::GetSelf => {
             MessageToUser {
                 intent: intent,
-                data: vec![::clients::akc::Akc::user_self(from)
+                data: vec![::clients::akc::Akc::user_self(akc_token)
                                .wait()
                                .unwrap()
                                .full_name],
@@ -110,22 +108,19 @@ pub fn generate_response(from: String, nlp_response: NlpResponse) -> MessageToUs
             }
         }
         intent @ Intent::GetField => {
-            let device_indications =
-                nlp_response
-                    .device
-                    .unwrap_or_else(|| vec!["no device specified".to_string()]);
+            let device_indications = nlp_response
+                .device
+                .unwrap_or_else(|| vec!["no device specified".to_string()]);
             let field_indication = nlp_response
                 .field
                 .unwrap_or_else(|| "no field".to_string());
-            match find_device_with(&from, &device_indications) {
+            match find_device_with(akc_token.clone(), &device_indications) {
                 Some(device) => {
-                    match find_field_value_with(&from, &device.id, &field_indication) {
+                    match find_field_value_with(akc_token.clone(), &device.id, &field_indication) {
                         Some((field, field_data)) => {
                             MessageToUser {
                                 intent: intent,
-                                data: vec![device.name,
-                                           field,
-                                           field_data.value.unwrap().to_string()],
+                                data: vec![device.name, field, field_data.value.unwrap().to_string()],
                                 status: Status::Info,
                             }
                         }

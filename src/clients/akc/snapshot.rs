@@ -237,9 +237,7 @@ impl<'de> Deserialize<'de> for FieldData {
                             }
                             let tmp = map.next_value::<DetailOrSubfield>()?;
                             match (tmp.detail, tmp.subfield) {
-                                (Some(ref detail), None) if detail.int.is_some() => {
-                                    ts = Some(detail.int.unwrap() as u64)
-                                }
+                                (Some(ref detail), None) if detail.int.is_some() => ts = Some(detail.int.unwrap() as u64),
                                 (None, Some(subfield)) => {
                                     values.insert("ts".to_string(), Box::new(subfield));
                                     ()
@@ -285,14 +283,9 @@ impl<'de> Deserialize<'de> for FieldData {
 
 
 impl Akc {
-    pub fn snapshots(from: String,
-                     sdid: Vec<String>)
-                     -> Box<Future<Item = Vec<Snapshot>, Error = AkcClientError>> {
-        let url = Url::parse(&format!("{}/messages/snapshots", Self::base_url::<'static>()))
-            .unwrap();
+    pub fn snapshots(token: ::clients::oauth2::Token, sdid: Vec<String>) -> Box<Future<Item = Vec<Snapshot>, Error = AkcClientError>> {
+        let url = Url::parse(&format!("{}/messages/snapshots", Self::base_url::<'static>())).unwrap();
 
-        Self::get_with_params::<DataSnapshot>(from,
-                                              url,
-                                              vec![("sdids".to_string(), sdid.join(","))])
+        Self::get_with_params::<DataSnapshot>(token, url, vec![("sdids".to_string(), sdid.join(","))])
     }
 }

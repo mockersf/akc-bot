@@ -63,9 +63,7 @@ impl From<Response> for ::sami::NlpResponse {
                                 .and_then(|values| {
                                               values
                                                   .get(0)
-                                                  .map(|value| {
-                                                           value.value.to_lowercase().clone()
-                                                       })
+                                                  .map(|value| value.value.to_lowercase().clone())
                                           }),
                             ..Default::default()
                         }

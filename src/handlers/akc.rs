@@ -17,9 +17,7 @@ create_handler!(ExchangeToken, |_: &ExchangeToken, req: &mut Request| {
                                       CONFIGURATION.akc_appsecret.to_owned(),
                                       "https://accounts.artik.cloud/token")
                           .unwrap()
-                          .exchange_token(oauth2::AuthorizationCode {
-                                              code: code[0].to_owned(),
-                                          }) {
+                          .exchange_token(oauth2::AuthorizationCode { code: code[0].to_owned() }) {
                 Ok(token) => {
                     DATABASE
                         .lock()
@@ -29,15 +27,11 @@ create_handler!(ExchangeToken, |_: &ExchangeToken, req: &mut Request| {
                 }
                 Err(err) => {
                     warn!("{:?}", err);
-                    Ok(Response::with((status::BadRequest,
-                                       format!("failed to exchange tokens: {:?}", err))))
+                    Ok(Response::with((status::BadRequest, format!("failed to exchange tokens: {:?}", err))))
                 }
             }
         }
-        (_, _, Some(error)) => {
-            Ok(Response::with((status::BadRequest,
-                               format!("failed to exchange tokens: {:?}", error))))
-        }
+        (_, _, Some(error)) => Ok(Response::with((status::BadRequest, format!("failed to exchange tokens: {:?}", error)))),
         (_, _, _) => Ok(Response::with((status::BadRequest, "failed to exchange tokens"))),
     }
 });
