@@ -97,6 +97,12 @@ impl Database {
     pub fn get_token(&self, key: String) -> Option<&::clients::oauth2::Token> {
         self.tokens.get(&key)
     }
+    pub fn remove_token(&mut self, access_token: String) {
+        let keys_to_remove: Vec<String> = self.tokens.clone().iter().filter(|&(_, v)| v.access_token() == access_token).map(|(k, _)| k.clone()).collect();
+        for key in keys_to_remove {
+            self.tokens.remove(&key);
+        }
+    }
 }
 lazy_static! {
     static ref DATABASE: Arc<Mutex<Database>> = Arc::new(Mutex::new(Database::new()));

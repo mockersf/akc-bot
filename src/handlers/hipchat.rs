@@ -73,6 +73,10 @@ fn notification_from_message(message: sami::MessageToUser) -> NotificationRespon
     NotificationResponse {
         message: match message.intent {
             ::sami::Intent::GetSelf => format!("You are connected as {}.", message.data[0]),
+            ::sami::Intent::Logout => {
+                DATABASE.lock().unwrap().remove_token(message.data[0].clone());
+                format!("You are now logged out.")
+            },
             ::sami::Intent::GetField => {
                 match message.data.len() {
                     1 => format!("No device found for '{}'.", message.data[0]),

@@ -107,6 +107,13 @@ pub fn generate_response(akc_token: ::clients::oauth2::Token, nlp_response: NlpR
                 status: Status::Info,
             }
         }
+        intent @ Intent::Logout => {
+            MessageToUser {
+                intent: intent,
+                data: vec![akc_token.access_token().to_string()],
+                status: Status::Confirmation,
+            }
+        }
         intent @ Intent::GetField => {
             let device_indications = nlp_response
                 .device
