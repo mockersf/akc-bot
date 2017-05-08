@@ -75,7 +75,7 @@ fn notification_from_message(message: sami::MessageToUser) -> NotificationRespon
             ::sami::Intent::GetSelf => format!("You are connected as {}.", message.data[0]),
             ::sami::Intent::Logout => {
                 DATABASE.lock().unwrap().remove_token(message.data[0].clone());
-                format!("You are now logged out.")
+                "You are now logged out.".to_string()
             },
             ::sami::Intent::GetField => {
                 match message.data.len() {
