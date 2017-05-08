@@ -101,6 +101,9 @@ impl FieldData {
             ..Default::default()
         }
     }
+    pub fn is_leaf(self: &Self) -> bool {
+        self.ts.is_some() && self.value.is_some()
+    }
 }
 
 impl<'de> Deserialize<'de> for FieldData {

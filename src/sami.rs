@@ -65,7 +65,7 @@ fn find_field_value_with(from: &str,
             return None;
         }
     };
-    let current_level = match snapshot.data.subfields {
+    let root = match snapshot.data.subfields {
         Some(subfields) => subfields,
         None => {
             warn!("Error getting snapshot for device {:?}: no subfields",
@@ -73,17 +73,25 @@ fn find_field_value_with(from: &str,
             return None;
         }
     };
-    recur_find_field(&current_level, field_indication)
+    recur_find_field(&root, vec![], field_indication)
 }
 
 fn recur_find_field(subfields: &HashMap<String, Box<::clients::akc::snapshot::FieldData>>,
+                    path: Vec<String>,
                     field_indication: &str)
                     -> Option<(String, Box<::clients::akc::snapshot::FieldData>)> {
-    for (name, value) in subfields {
-        println!("{:?}: {:?}", name, value);
+    for (name, value) in subfields.iter().filter(|entry| entry.1.is_leaf()) {
+        info!("{:?} - {:?} : {:?}", path, name, value);
         if name == field_indication {
             return Some((name.to_owned(), value.to_owned()));
         }
+    }
+    for (name, values) in subfields.iter().filter(|entry| !entry.1.is_leaf()) {
+        let mut new_path = path.clone();
+        new_path.push(name.to_owned());
+        return recur_find_field(&values.to_owned().subfields.unwrap(),
+                                new_path,
+                                field_indication);
     }
     None
 }
