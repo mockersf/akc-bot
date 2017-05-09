@@ -45,7 +45,7 @@ fn find_device_with(akc_token: &::clients::oauth2::Token, indications: &[String]
 fn find_field_value_with(akc_token: &::clients::oauth2::Token,
                          device_id: &str,
                          field_indication: &str)
-                         -> Option<(String, Box<::clients::akc::snapshot::FieldData>)> {
+                         -> Option<(String, ::clients::akc::snapshot::FieldValue, Option<u64>)> {
     let snapshots = match ::clients::akc::Akc::snapshots(akc_token.clone(), vec![device_id.to_string()]).wait() {
         Ok(snapshots) => snapshots,
         Err(err) => {
@@ -63,33 +63,35 @@ fn find_field_value_with(akc_token: &::clients::oauth2::Token,
             return None;
         }
     };
-    let root = match snapshot.data.subfields {
-        Some(subfields) => subfields,
-        None => {
-            warn!("Error getting snapshot for device {:?}: no subfields",
-                  device_id);
-            return None;
-        }
-    };
-    recur_find_field(&root, vec![], field_indication)
+    if let ::clients::akc::snapshot::FieldData::Node(root) = snapshot.data {
+        recur_find_field(&root, vec![], field_indication)
+    } else {
+        warn!("Error getting snapshot for device {:?}: no subfields", device_id);
+        None
+    }
 }
 
 fn recur_find_field(subfields: &HashMap<String, Box<::clients::akc::snapshot::FieldData>>,
                     path: Vec<String>,
                     field_indication: &str)
-                    -> Option<(String, Box<::clients::akc::snapshot::FieldData>)> {
-    for (name, value) in subfields.iter().filter(|entry| entry.1.is_leaf()) {
+                    -> Option<(String, ::clients::akc::snapshot::FieldValue, Option<u64>)> {
+    for (name, value) in subfields.iter() {
         info!("{:?} - {:?} : {:?}", path, name, value);
-        if name == field_indication {
-            return Some((name.to_owned(), value.to_owned()));
+        match **value {
+            ::clients::akc::snapshot::FieldData::Leaf {ts, ref value} => {
+                if name == field_indication {
+                    return Some((name.to_owned(), value.to_owned(), ts));
+                }
+            }
+            ::clients::akc::snapshot::FieldData::Node(ref subfields) => {
+                let mut new_path = path.clone();
+                new_path.push(name.to_owned());
+                match recur_find_field(subfields, new_path, field_indication) {
+                    Some(result) => return Some(result),
+                    None => ()
+                };
+            }
         }
-    }
-    for (name, values) in subfields.iter().filter(|entry| !entry.1.is_leaf()) {
-        let mut new_path = path.clone();
-        new_path.push(name.to_owned());
-        return recur_find_field(&values.to_owned().subfields.unwrap(),
-                                new_path,
-                                field_indication);
     }
     None
 }
@@ -124,10 +126,10 @@ pub fn generate_response(akc_token: ::clients::oauth2::Token, nlp_response: NlpR
             match find_device_with(&akc_token, &device_indications) {
                 Some(device) => {
                     match find_field_value_with(&akc_token, &device.id, &field_indication) {
-                        Some((field, field_data)) => {
+                        Some((field, field_value, _)) => {
                             MessageToUser {
                                 intent: intent,
-                                data: vec![device.name, field, field_data.value.unwrap().to_string()],
+                                data: vec![device.name, field, field_value.to_string()],
                                 status: Status::Info,
                             }
                         }
