@@ -2,6 +2,11 @@ use std::collections::HashMap;
 
 use futures::Future;
 
+enum Error {
+    AkcError,
+    NoMatch,
+}
+
 #[derive(Debug)]
 pub enum Status {
     Info,
@@ -17,19 +22,23 @@ pub struct MessageToUser {
     pub status: Status,
 }
 
-fn find_device_with(akc_token: &::clients::oauth2::Token, indications: &[String]) -> Option<::clients::akc::device::Device> {
-    let uid = match ::clients::akc::Akc::user_self(akc_token.clone()).wait() {
-        Ok(user) => user.id,
+fn find_user(akc_token: &::clients::oauth2::Token) -> Result<::clients::akc::user::User, Error> {
+    match ::clients::akc::Akc::user_self(akc_token.clone()).wait() {
+        Ok(user) => Ok(user),
         Err(err) => {
             warn!("Error getting user: {:?}", err);
-            return None;
+            return Err(Error::AkcError);
         }
-    };
+    }
+}
+
+fn find_device_with(akc_token: &::clients::oauth2::Token, indications: &[String]) -> Result<::clients::akc::device::Device, Error> {
+    let uid = find_user(akc_token)?.id;
     let mut devices = match ::clients::akc::Akc::devices_parallel(akc_token.clone(), &uid).wait() {
         Ok(devices) => devices,
         Err(err) => {
             warn!("Error getting user: {:?}", err);
-            return None;
+            return Err(Error::AkcError);
         }
     };
     for indication in indications {
@@ -39,20 +48,23 @@ fn find_device_with(akc_token: &::clients::oauth2::Token, indications: &[String]
             .cloned()
             .collect::<Vec<::clients::akc::device::Device>>();
     }
-    devices.get(0).cloned()
+    match devices.get(0).cloned() {
+        Some(device) => Ok(device),
+        None => Err(Error::NoMatch)
+    }
 }
 
 fn find_field_value_with(akc_token: &::clients::oauth2::Token,
                          device_id: &str,
                          field_indication: &str)
-                         -> Option<(String, ::clients::akc::snapshot::FieldValue, Option<u64>)> {
+                         -> Result<(String, ::clients::akc::snapshot::FieldValue, Option<u64>), Error> {
     let snapshots = match ::clients::akc::Akc::snapshots(akc_token.clone(), vec![device_id.to_string()]).wait() {
         Ok(snapshots) => snapshots,
         Err(err) => {
             warn!("Error getting snapshot for device {:?}: {:?}",
                   device_id,
                   err);
-            return None;
+            return Err(Error::AkcError);
         }
     };
     let snapshot = match snapshots.get(0) {
@@ -60,55 +72,63 @@ fn find_field_value_with(akc_token: &::clients::oauth2::Token,
         None => {
             warn!("Error getting snapshot for device {:?}: no result",
                   device_id);
-            return None;
+            return Err(Error::AkcError);
         }
     };
     if let ::clients::akc::snapshot::FieldData::Node(root) = snapshot.data {
         recur_find_field(&root, vec![], field_indication)
     } else {
         warn!("Error getting snapshot for device {:?}: no subfields", device_id);
-        None
+        return Err(Error::NoMatch);
     }
 }
 
 fn recur_find_field(subfields: &HashMap<String, Box<::clients::akc::snapshot::FieldData>>,
                     path: Vec<String>,
                     field_indication: &str)
-                    -> Option<(String, ::clients::akc::snapshot::FieldValue, Option<u64>)> {
+                    -> Result<(String, ::clients::akc::snapshot::FieldValue, Option<u64>), Error> {
     for (name, value) in subfields.iter() {
         info!("{:?} - {:?} : {:?}", path, name, value);
         match **value {
             ::clients::akc::snapshot::FieldData::Leaf {ts, ref value} => {
                 if name == field_indication {
-                    return Some((name.to_owned(), value.to_owned(), ts));
+                    return Ok((name.to_owned(), value.to_owned(), ts));
                 }
             }
             ::clients::akc::snapshot::FieldData::Node(ref subfields) => {
                 let mut new_path = path.clone();
                 new_path.push(name.to_owned());
                 match recur_find_field(subfields, new_path, field_indication) {
-                    Some(result) => return Some(result),
-                    None => ()
+                    Ok(result) => return Ok(result),
+                    Err(_) => ()
                 };
             }
         }
     }
-    None
+    return Err(Error::NoMatch);
 }
 
 pub fn generate_response(akc_token: ::clients::oauth2::Token, nlp_response: NlpResponse) -> MessageToUser {
     info!("{:?}", nlp_response);
     match nlp_response.intent {
+        
         intent @ Intent::GetSelf => {
-            MessageToUser {
-                intent: intent,
-                data: vec![::clients::akc::Akc::user_self(akc_token)
-                               .wait()
-                               .unwrap()
-                               .full_name],
-                status: Status::Info,
+            match find_user(&akc_token) {
+                Ok(user) => MessageToUser {
+                    intent: intent,
+                    data: vec![user.full_name],
+                    status: Status::Info,
+                },
+                Err(_) => {
+                    MessageToUser {
+                        intent: Intent::ForcedLogout,
+                        data: vec![akc_token.access_token().to_string()],
+                        status: Status::Error,
+                    }                            
+                }
             }
         }
+
         intent @ Intent::Logout => {
             MessageToUser {
                 intent: intent,
@@ -116,6 +136,7 @@ pub fn generate_response(akc_token: ::clients::oauth2::Token, nlp_response: NlpR
                 status: Status::Confirmation,
             }
         }
+        
         intent @ Intent::GetField => {
             let device_indications = nlp_response
                 .device
@@ -124,34 +145,48 @@ pub fn generate_response(akc_token: ::clients::oauth2::Token, nlp_response: NlpR
                 .field
                 .unwrap_or_else(|| "no field".to_string());
             match find_device_with(&akc_token, &device_indications) {
-                Some(device) => {
+                Ok(device) => {
                     match find_field_value_with(&akc_token, &device.id, &field_indication) {
-                        Some((field, field_value, _)) => {
+                        Ok((field, field_value, _)) => {
                             MessageToUser {
                                 intent: intent,
                                 data: vec![device.name, field, field_value.to_string()],
                                 status: Status::Info,
                             }
-                        }
-                        None => {
+                        },
+                        Err(Error::NoMatch) => {
                             MessageToUser {
                                 intent: intent,
                                 data: vec![device.name, field_indication],
                                 status: Status::Error,
                             }
+                        },
+                        Err(Error::AkcError) => {
+                            MessageToUser {
+                                intent: Intent::ForcedLogout,
+                                data: vec![akc_token.access_token().to_string()],
+                                status: Status::Error,
+                            }                            
                         }
-
                     }
-                }
-                None => {
+                },
+                Err(Error::NoMatch) => {
                     MessageToUser {
                         intent: intent,
                         data: vec![device_indications.join(" ")],
                         status: Status::Error,
                     }
+                },
+                Err(Error::AkcError) => {
+                    MessageToUser {
+                        intent: Intent::ForcedLogout,
+                        data: vec![akc_token.access_token().to_string()],
+                        status: Status::Error,
+                    }                            
                 }
             }
         }
+
         intent => {
             MessageToUser {
                 intent,
@@ -168,6 +203,7 @@ pub enum Intent {
     GetField,
     FindDeviceType,
     Logout,
+    ForcedLogout,
     GetSelf,
     Unknown,
 }

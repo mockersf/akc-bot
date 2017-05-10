@@ -77,6 +77,10 @@ fn notification_from_message(message: sami::MessageToUser) -> NotificationRespon
                 DATABASE.lock().unwrap().remove_token(message.data[0].clone());
                 "You are now logged out.".to_string()
             },
+            ::sami::Intent::ForcedLogout => {
+                DATABASE.lock().unwrap().remove_token(message.data[0].clone());
+                "Error communicating with ARTIK CloudYou have been logged out.".to_string()
+            },
             ::sami::Intent::GetField => {
                 match message.data.len() {
                     1 => format!("No device found for '{}'.", message.data[0]),
