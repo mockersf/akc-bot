@@ -23,6 +23,7 @@ extern crate uuid;
 extern crate ini;
 #[macro_use]
 extern crate lazy_static;
+extern crate transient_hashmap;
 
 mod log_message;
 mod middlewares;
@@ -37,6 +38,7 @@ use router::Router;
 use logger::Logger;
 use log::{LogRecord, LogLevelFilter};
 use env_logger::LogBuilder;
+use transient_hashmap::TransientHashMap;
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
@@ -79,6 +81,17 @@ lazy_static! {
 lazy_static! {
     static ref REQUEST_CPU_POOL: CpuPool = {
         CpuPool::new_num_cpus()
+    };
+}
+
+lazy_static! {
+    static ref USER_CACHE: Arc<Mutex<TransientHashMap<String, clients::akc::user::User>>> = {
+        Arc::new(Mutex::new(TransientHashMap::new(60 * 60 * 24 * 14)))
+    };
+}
+lazy_static! {
+    static ref DEVICE_CACHE: Arc<Mutex<TransientHashMap<String, Vec<clients::akc::device::Device>>>> = {
+        Arc::new(Mutex::new(TransientHashMap::new(60 * 30)))
     };
 }
 

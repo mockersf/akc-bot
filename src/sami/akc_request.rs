@@ -4,25 +4,48 @@ use futures::Future;
 
 use sami::Error;
 
-pub fn find_user(akc_token: &::clients::oauth2::Token) -> Result<::clients::akc::user::User, Error> {
-    match ::clients::akc::Akc::user_self(akc_token.clone()).wait() {
-        Ok(user) => Ok(user),
-        Err(err) => {
-            warn!("Error getting user: {:?}", err);
-            return Err(Error::AkcError);
+use USER_CACHE;
+use DEVICE_CACHE;
+
+macro_rules! cache_get_or_set {
+    ( $c:expr, $t:expr, $m:expr ) => {
+        {
+            let has_key = {
+                let mut lock = $c.lock().unwrap();
+                lock.contains_key(&$t)
+            };
+            if has_key {
+                let mut lock = $c.lock().unwrap();
+                lock.get(&$t).unwrap().clone()
+            } else {
+                match $m {
+                    Ok(v) => {
+                        let mut lock = $c.lock().unwrap();
+                        lock.insert($t, v.clone());
+                        v
+                    },
+                    Err(err) => {
+                        warn!("Error: {:?}", err);
+                        return Err(Error::AkcError);
+                    }
+                }
+            }
         }
     }
 }
 
+
+pub fn find_user(akc_token: &::clients::oauth2::Token) -> Result<::clients::akc::user::User, Error> {
+    Ok(cache_get_or_set!(USER_CACHE,
+                         akc_token.access_token().to_string(),
+                         ::clients::akc::Akc::user_self(akc_token.clone()).wait()))
+}
+
 pub fn find_device_with(akc_token: &::clients::oauth2::Token, indications: &[String]) -> Result<::clients::akc::device::Device, Error> {
     let uid = find_user(akc_token)?.id;
-    let mut devices = match ::clients::akc::Akc::devices_parallel(akc_token.clone(), &uid).wait() {
-        Ok(devices) => devices,
-        Err(err) => {
-            warn!("Error getting user: {:?}", err);
-            return Err(Error::AkcError);
-        }
-    };
+    let mut devices = cache_get_or_set!(DEVICE_CACHE,
+                                        akc_token.access_token().to_string(),
+                                        ::clients::akc::Akc::devices_parallel(akc_token.clone(), &uid).wait());
     for indication in indications {
         devices = devices
             .iter()

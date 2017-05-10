@@ -18,6 +18,7 @@ dependencies = [
  "serde_derive 1.0.2 (registry+https://github.com/rust-lang/crates.io-index)",
  "serde_json 1.0.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
+ "transient-hashmap 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "urlencoded 0.5.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "uuid 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)",
 ]
@@ -611,6 +612,14 @@ version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 
 [[package]]
+name = "transient-hashmap"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "typeable"
 version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -797,6 +806,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum thread_local 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "c85048c6260d17cf486ceae3282d9fb6b90be220bf5b28c400f5485ffc29f0c7"
 "checksum time 0.1.37 (registry+https://github.com/rust-lang/crates.io-index)" = "ffd7ccbf969a892bf83f1e441126968a07a3941c24ff522a26af9f9f4585d1a3"
 "checksum traitobject 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)" = "efd1f82c56340fdf16f2a953d7bda4f8fdffba13d93b00844c25572110b26079"
+"checksum transient-hashmap 0.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "715254c8f0811be1a79ad3ea5e6fa3c8eddec2b03d7f5ba78cf093e56d79c24f"
 "checksum typeable 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)" = "1410f6f91f21d1612654e7cc69193b0334f909dcf2c790c4826254fbb86f8887"
 "checksum typemap 0.3.3 (registry+https://github.com/rust-lang/crates.io-index)" = "653be63c80a3296da5551e1bfd2cca35227e13cdd08c6668903ae2f4f77aa1f6"
 "checksum unicase 1.4.0 (registry+https://github.com/rust-lang/crates.io-index)" = "13a5906ca2b98c799f4b1ab4557b76367ebd6ae5ef14930ec841c74aed5f3764"
