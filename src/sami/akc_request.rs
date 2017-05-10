@@ -57,7 +57,7 @@ pub fn find_field_value_with(akc_token: &::clients::oauth2::Token,
             return Err(Error::AkcError);
         }
     };
-    if let ::clients::akc::snapshot::FieldData::Node(root) = snapshot.data {
+    if let ::clients::akc::snapshot::FieldData::Group(root) = snapshot.data {
         recur_find_field(&root, vec![], field_indication)
     } else {
         warn!("Error getting snapshot for device {:?}: no subfields", device_id);
@@ -72,12 +72,12 @@ fn recur_find_field(subfields: &HashMap<String, Box<::clients::akc::snapshot::Fi
     for (name, value) in subfields.iter() {
         info!("{:?} - {:?} : {:?}", path, name, value);
         match **value {
-            ::clients::akc::snapshot::FieldData::Leaf {ts, ref value} => {
+            ::clients::akc::snapshot::FieldData::Field {ts, ref value} => {
                 if name == field_indication {
                     return Ok((name.to_owned(), value.to_owned(), ts));
                 }
             }
-            ::clients::akc::snapshot::FieldData::Node(ref subfields) => {
+            ::clients::akc::snapshot::FieldData::Group(ref subfields) => {
                 let mut new_path = path.clone();
                 new_path.push(name.to_owned());
                 match recur_find_field(subfields, new_path, field_indication) {

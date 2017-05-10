@@ -28,8 +28,8 @@ pub struct Snapshot {
 #[derive(Deserialize, Serialize, Debug, Clone)]
 #[serde(untagged)]
 pub enum FieldData {
-    Leaf { ts: Option<u64>, value: FieldValue },
-    Node(HashMap<String, Box<FieldData>>)
+    Field { ts: Option<u64>, value: FieldValue },
+    Group(HashMap<String, Box<FieldData>>)
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
