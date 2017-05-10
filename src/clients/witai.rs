@@ -23,8 +23,8 @@ pub struct Response {
     entities: HashMap<String, Vec<Value>>,
 }
 
-impl From<Response> for ::sami::NlpResponse {
-    fn from(response: Response) -> ::sami::NlpResponse {
+impl From<Response> for ::sami::input::NlpResponse {
+    fn from(response: Response) -> ::sami::input::NlpResponse {
         info!("{:?}", response);
         match response.entities.get("intent") {
             Some(values) => {
@@ -34,19 +34,19 @@ impl From<Response> for ::sami::NlpResponse {
                     .collect::<Vec<String>>();
                 match values {
                     ref intent_self if intent_self.len() == 1 && intent_self[0] == "get_self" => {
-                        ::sami::NlpResponse {
+                        ::sami::input::NlpResponse {
                             intent: ::sami::Intent::GetSelf,
                             ..Default::default()
                         }
                     }
                     ref intent_self if intent_self.len() == 1 && intent_self[0] == "logout" => {
-                        ::sami::NlpResponse {
+                        ::sami::input::NlpResponse {
                             intent: ::sami::Intent::Logout,
                             ..Default::default()
                         }
                     }
                     ref intent_self if intent_self.len() == 1 && intent_self[0] == "get_field" => {
-                        ::sami::NlpResponse {
+                        ::sami::input::NlpResponse {
                             intent: ::sami::Intent::GetField,
                             device: response
                                 .entities
@@ -69,8 +69,7 @@ impl From<Response> for ::sami::NlpResponse {
                         }
                     }
                     intents => {
-                        ::sami::NlpResponse {
-                            intent: ::sami::Intent::Unknown,
+                        ::sami::input::NlpResponse {
                             meta: Some(intents),
                             ..Default::default()
                         }
@@ -78,8 +77,7 @@ impl From<Response> for ::sami::NlpResponse {
                 }
             }
             None => {
-                ::sami::NlpResponse {
-                    intent: ::sami::Intent::Unknown,
+                ::sami::input::NlpResponse {
                     ..Default::default()
                 }
             }

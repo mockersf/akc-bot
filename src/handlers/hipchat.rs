@@ -68,7 +68,7 @@ enum Color {
 
 use CONFIGURATION;
 
-fn notification_from_message(message: sami::MessageToUser) -> NotificationResponse {
+fn notification_from_message(message: sami::output::MessageToUser) -> NotificationResponse {
     info!("{:?}", message);
     NotificationResponse {
         message: match message.intent {
@@ -79,7 +79,7 @@ fn notification_from_message(message: sami::MessageToUser) -> NotificationRespon
             },
             ::sami::Intent::ForcedLogout => {
                 DATABASE.lock().unwrap().remove_token(message.data[0].clone());
-                "Error communicating with ARTIK CloudYou have been logged out.".to_string()
+                "Error communicating with ARTIK Cloud. You have been logged out.".to_string()
             },
             ::sami::Intent::GetField => {
                 match message.data.len() {
@@ -109,10 +109,10 @@ fn notification_from_message(message: sami::MessageToUser) -> NotificationRespon
             intent => format!("{:?} not yet done", intent),
         },
         color: match message.status {
-            sami::Status::Info => Color::Purple,
-            sami::Status::Confirmation => Color::Green,
-            sami::Status::Error => Color::Red,
-            sami::Status::ActionRequired => Color::Yellow,
+            sami::output::Status::Info => Color::Purple,
+            sami::output::Status::Confirmation => Color::Green,
+            sami::output::Status::Error => Color::Red,
+            sami::output::Status::ActionRequired => Color::Yellow,
         },
     }
 }
@@ -133,8 +133,8 @@ create_handler!(ReceiveNotification,
             if let Some(akc_access_token) = akc_access_token {
                 let trigger = &struct_body.item.message.unwrap().message[(CONFIGURATION.hipchat_command.len() + 1)..];
                 let wit_ai_response_future = WitAi::get(trigger);
-                let wit_ai_response = sami::NlpResponse::from(wit_ai_response_future.wait().unwrap());
-                let message = sami::generate_response(akc_access_token.clone(), wit_ai_response);
+                let wit_ai_response = sami::input::NlpResponse::from(wit_ai_response_future.wait().unwrap());
+                let message = sami::output::MessageToUser::from(akc_access_token.clone(), wit_ai_response);
                 Ok(Response::with((status::Ok, serde_json::to_string(&notification_from_message(message)).unwrap())))
             } else {
                 let signin_message = format!("This room is not authenticated.
