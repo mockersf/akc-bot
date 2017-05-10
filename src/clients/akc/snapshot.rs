@@ -29,7 +29,7 @@ pub struct Snapshot {
 #[serde(untagged)]
 pub enum FieldData {
     Field { ts: Option<u64>, value: FieldValue },
-    Group(HashMap<String, Box<FieldData>>)
+    Group(HashMap<String, Box<FieldData>>),
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]

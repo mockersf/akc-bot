@@ -76,11 +76,7 @@ impl From<Response> for ::sami::input::NlpResponse {
                     }
                 }
             }
-            None => {
-                ::sami::input::NlpResponse {
-                    ..Default::default()
-                }
-            }
+            None => ::sami::input::NlpResponse { ..Default::default() },
         }
     }
 }

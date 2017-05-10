@@ -37,15 +37,15 @@ impl AfterMiddleware for ErrorLogger {
                Some(status::Created) |
                None => res,
                Some(other) => {
-            let mut body: Vec<u8> = Vec::new();
-            match res.body.unwrap().write_body(&mut body) {
-                Ok(_) => (),
-                Err(e) => error!("error reading response body: {}", e),
-            };
-            let body = String::from_utf8(body).unwrap();
-            warn!("{}", log_message::LogMessage::new(&body));
-            Response::with((other, body))
-        }
+                   let mut body: Vec<u8> = Vec::new();
+                   match res.body.unwrap().write_body(&mut body) {
+                       Ok(_) => (),
+                       Err(e) => error!("error reading response body: {}", e),
+                   };
+                   let body = String::from_utf8(body).unwrap();
+                   warn!("{}", log_message::LogMessage::new(&body));
+                   Response::with((other, body))
+               }
            })
     }
 }

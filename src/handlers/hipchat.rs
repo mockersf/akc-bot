@@ -74,13 +74,19 @@ fn notification_from_message(message: sami::output::MessageToUser) -> Notificati
         message: match message.intent {
             ::sami::Intent::GetSelf => format!("You are connected as {}.", message.data[0]),
             ::sami::Intent::Logout => {
-                DATABASE.lock().unwrap().remove_token(message.data[0].clone());
+                DATABASE
+                    .lock()
+                    .unwrap()
+                    .remove_token(message.data[0].clone());
                 "You are now logged out.".to_string()
-            },
+            }
             ::sami::Intent::ForcedLogout => {
-                DATABASE.lock().unwrap().remove_token(message.data[0].clone());
+                DATABASE
+                    .lock()
+                    .unwrap()
+                    .remove_token(message.data[0].clone());
                 "Error communicating with ARTIK Cloud. You have been logged out.".to_string()
-            },
+            }
             ::sami::Intent::GetField => {
                 match message.data.len() {
                     1 => format!("No device found for '{}'.", message.data[0]),
@@ -144,9 +150,9 @@ create_handler!(ReceiveNotification,
 
                 Ok(Response::with((status::Ok,
                                    serde_json::to_string(&NotificationResponse {
-                                                              message: signin_message,
-                                                              color: Color::Yellow,
-                                                          })
+                                                             message: signin_message,
+                                                             color: Color::Yellow,
+                                                         })
                                            .unwrap())))
             }
         }

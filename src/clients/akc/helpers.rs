@@ -41,19 +41,19 @@ impl Akc {
         future_request::get_async::<AkcClientError>(url, Self::auth_header(token))
             .and_then(move |response| match StatusCode::from_u16(response.status_raw().0) {
                           StatusCode::Ok => {
-                let data_wrapper: Wrapper = match serde_json::from_reader(response) {
-                    Ok(data_wrapper) => data_wrapper,
-                    Err(error) => Err(error)?,
-                };
-                Ok(data_wrapper.data())
-            }
+                              let data_wrapper: Wrapper = match serde_json::from_reader(response) {
+                                  Ok(data_wrapper) => data_wrapper,
+                                  Err(error) => Err(error)?,
+                              };
+                              Ok(data_wrapper.data())
+                          }
                           _ => {
-                let error_wrapper: ErrorWrapper = match serde_json::from_reader(response) {
-                    Ok(error_wrapper) => error_wrapper,
-                    Err(error) => Err(error)?,
-                };
-                Err(error_wrapper)?
-            }
+                              let error_wrapper: ErrorWrapper = match serde_json::from_reader(response) {
+                                  Ok(error_wrapper) => error_wrapper,
+                                  Err(error) => Err(error)?,
+                              };
+                              Err(error_wrapper)?
+                          }
                       })
             .boxed()
     }
@@ -71,20 +71,20 @@ impl Akc {
         future_request::get_async::<AkcClientError>(url, Self::auth_header(token))
             .and_then(move |response| match StatusCode::from_u16(response.status_raw().0) {
                           StatusCode::Ok => {
-                let data_wrapper: Wrapper = match serde_json::from_reader(response) {
-                    Ok(data_wrapper) => data_wrapper,
-                    Err(error) => Err(error)?,
-                };
-                let total = data_wrapper.total();
-                Ok((data_wrapper.data(), total))
-            }
+                              let data_wrapper: Wrapper = match serde_json::from_reader(response) {
+                                  Ok(data_wrapper) => data_wrapper,
+                                  Err(error) => Err(error)?,
+                              };
+                              let total = data_wrapper.total();
+                              Ok((data_wrapper.data(), total))
+                          }
                           _ => {
-                let error_wrapper: ErrorWrapper = match serde_json::from_reader(response) {
-                    Ok(error_wrapper) => error_wrapper,
-                    Err(error) => Err(error)?,
-                };
-                Err(error_wrapper)?
-            }
+                              let error_wrapper: ErrorWrapper = match serde_json::from_reader(response) {
+                                  Ok(error_wrapper) => error_wrapper,
+                                  Err(error) => Err(error)?,
+                              };
+                              Err(error_wrapper)?
+                          }
                       })
             .boxed()
     }
@@ -105,24 +105,24 @@ impl Akc {
         future_request::get_async::<AkcClientError>(url, Self::auth_header(token))
             .and_then(move |response| match StatusCode::from_u16(response.status_raw().0) {
                           StatusCode::Ok => {
-                let data_wrapper: Wrapper = match serde_json::from_reader(response) {
-                    Ok(data_wrapper) => data_wrapper,
-                    Err(error) => Err(error)?,
-                };
-                let count = data_wrapper.count();
-                Ok((data_wrapper.data(),
-                    PageInformation {
-                        offset: offset + page_count,
-                        last_page_count: count,
-                    }))
-            }
+                              let data_wrapper: Wrapper = match serde_json::from_reader(response) {
+                                  Ok(data_wrapper) => data_wrapper,
+                                  Err(error) => Err(error)?,
+                              };
+                              let count = data_wrapper.count();
+                              Ok((data_wrapper.data(),
+                                  PageInformation {
+                                      offset: offset + page_count,
+                                      last_page_count: count,
+                                  }))
+                          }
                           _ => {
-                let error_wrapper: ErrorWrapper = match serde_json::from_reader(response) {
-                    Ok(error_wrapper) => error_wrapper,
-                    Err(error) => Err(error)?,
-                };
-                Err(error_wrapper)?
-            }
+                              let error_wrapper: ErrorWrapper = match serde_json::from_reader(response) {
+                                  Ok(error_wrapper) => error_wrapper,
+                                  Err(error) => Err(error)?,
+                              };
+                              Err(error_wrapper)?
+                          }
                       })
             .boxed()
     }

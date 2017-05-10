@@ -55,14 +55,14 @@ pub fn find_device_with(akc_token: &::clients::oauth2::Token, indications: &[Str
     }
     match devices.get(0).cloned() {
         Some(device) => Ok(device),
-        None => Err(Error::NoMatch)
+        None => Err(Error::NoMatch),
     }
 }
 
 pub fn find_field_value_with(akc_token: &::clients::oauth2::Token,
-                         device_id: &str,
-                         field_indication: &str)
-                         -> Result<(String, ::clients::akc::snapshot::FieldValue, Option<u64>), Error> {
+                             device_id: &str,
+                             field_indication: &str)
+                             -> Result<(String, ::clients::akc::snapshot::FieldValue, Option<u64>), Error> {
     let snapshots = match ::clients::akc::Akc::snapshots(akc_token.clone(), vec![device_id.to_string()]).wait() {
         Ok(snapshots) => snapshots,
         Err(err) => {
@@ -83,7 +83,8 @@ pub fn find_field_value_with(akc_token: &::clients::oauth2::Token,
     if let ::clients::akc::snapshot::FieldData::Group(root) = snapshot.data {
         recur_find_field(&root, vec![], field_indication)
     } else {
-        warn!("Error getting snapshot for device {:?}: no subfields", device_id);
+        warn!("Error getting snapshot for device {:?}: no subfields",
+              device_id);
         return Err(Error::NoMatch);
     }
 }
@@ -95,7 +96,7 @@ fn recur_find_field(subfields: &HashMap<String, Box<::clients::akc::snapshot::Fi
     for (name, value) in subfields.iter() {
         info!("{:?} - {:?} : {:?}", path, name, value);
         match **value {
-            ::clients::akc::snapshot::FieldData::Field {ts, ref value} => {
+            ::clients::akc::snapshot::FieldData::Field { ts, ref value } => {
                 if name == field_indication {
                     return Ok((name.to_owned(), value.to_owned(), ts));
                 }
@@ -105,7 +106,7 @@ fn recur_find_field(subfields: &HashMap<String, Box<::clients::akc::snapshot::Fi
                 new_path.push(name.to_owned());
                 match recur_find_field(subfields, new_path, field_indication) {
                     Ok(result) => return Ok(result),
-                    Err(_) => ()
+                    Err(_) => (),
                 };
             }
         }
