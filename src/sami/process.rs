@@ -39,10 +39,19 @@ pub fn generate_response(akc_token: ::clients::oauth2::Token, nlp_response: inpu
             match akc_request::find_device_with(&akc_token, &device_indications) {
                 Ok(device) => {
                     match akc_request::find_field_value_with(&akc_token, &device.id, &field_indication) {
-                        Ok((field, field_value, _)) => {
+                        Ok(field_value_and_path) => {
                             output::MessageToUser {
                                 intent: intent,
-                                data: vec![device.name, field, field_value.to_string()],
+                                data: vec![device.name,
+                                           format!("{}{}{}",
+                                                   field_value_and_path.path.join("."),
+                                                   if field_value_and_path.path.is_empty() {
+                                                       ""
+                                                   } else {
+                                                       "."
+                                                   },
+                                                   field_value_and_path.name),
+                                           field_value_and_path.value.to_string()],
                                 status: output::Status::Info,
                             }
                         }

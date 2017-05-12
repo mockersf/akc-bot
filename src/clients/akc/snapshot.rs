@@ -42,11 +42,11 @@ pub enum FieldValue {
 }
 impl fmt::Display for FieldValue {
     fn fmt(&self, fm: &mut fmt::Formatter) -> fmt::Result {
-        match self {
-            &FieldValue::Float(f) => write!(fm, "{:?}", f),
-            &FieldValue::Int(i) => write!(fm, "{:?}", i),
-            &FieldValue::String(ref s) => write!(fm, "{:?}", s),
-            &FieldValue::Boolean(b) => write!(fm, "{:?}", b),
+        match *self {
+            FieldValue::Float(f) => write!(fm, "{:?}", f),
+            FieldValue::Int(i) => write!(fm, "{:?}", i),
+            FieldValue::String(ref s) => write!(fm, "{:?}", s),
+            FieldValue::Boolean(b) => write!(fm, "{:?}", b),
         }
     }
 }

@@ -7,6 +7,24 @@ use sami::Error;
 use USER_CACHE;
 use DEVICE_CACHE;
 
+#[derive(Debug)]
+pub struct FieldValueAndPath {
+    pub path: Vec<String>,
+    pub name: String,
+    pub value: ::clients::akc::snapshot::FieldValue,
+    pub ts: Option<u64>,
+}
+impl Clone for FieldValueAndPath {
+    fn clone(&self) -> FieldValueAndPath {
+        FieldValueAndPath {
+            path: self.path.clone(),
+            name: self.name.clone(),
+            value: self.value.clone(),
+            ts: self.ts,
+        }
+    }
+}
+
 macro_rules! cache_get_or_set {
     ( $c:expr, $t:expr, $m:expr ) => {
         {
@@ -62,7 +80,7 @@ pub fn find_device_with(akc_token: &::clients::oauth2::Token, indications: &[Str
 pub fn find_field_value_with(akc_token: &::clients::oauth2::Token,
                              device_id: &str,
                              field_indication: &str)
-                             -> Result<(String, ::clients::akc::snapshot::FieldValue, Option<u64>), Error> {
+                             -> Result<FieldValueAndPath, Error> {
     let snapshots = match ::clients::akc::Akc::snapshots(akc_token.clone(), vec![device_id.to_string()]).wait() {
         Ok(snapshots) => snapshots,
         Err(err) => {
@@ -81,35 +99,48 @@ pub fn find_field_value_with(akc_token: &::clients::oauth2::Token,
         }
     };
     if let ::clients::akc::snapshot::FieldData::Group(root) = snapshot.data {
-        recur_find_field(&root, vec![], field_indication)
+        let mut fields = recur_find_fields(&root, vec![], field_indication);
+        match fields.len() {
+            0 => Err(Error::NoMatch),
+            _ => {
+                info!("fields found: {:?}", fields);
+                fields.sort_by(|a, b| a.path.len().cmp(&b.path.len()));
+                Ok(fields[0].clone())
+            }
+        }
     } else {
         warn!("Error getting snapshot for device {:?}: no subfields",
               device_id);
-        return Err(Error::NoMatch);
+        Err(Error::NoMatch)
     }
 }
 
-fn recur_find_field(subfields: &HashMap<String, Box<::clients::akc::snapshot::FieldData>>,
-                    path: Vec<String>,
-                    field_indication: &str)
-                    -> Result<(String, ::clients::akc::snapshot::FieldValue, Option<u64>), Error> {
+fn recur_find_fields(subfields: &HashMap<String, Box<::clients::akc::snapshot::FieldData>>,
+                     path: Vec<String>,
+                     field_indication: &str)
+                     -> Vec<FieldValueAndPath> {
+    let mut result = vec![];
     for (name, value) in subfields.iter() {
         info!("{:?} - {:?} : {:?}", path, name, value);
         match **value {
             ::clients::akc::snapshot::FieldData::Field { ts, ref value } => {
                 if name == field_indication {
-                    return Ok((name.to_owned(), value.to_owned(), ts));
+                    result.push(FieldValueAndPath {
+                                    path: path.clone(),
+                                    name: name.to_owned(),
+                                    value: value.to_owned(),
+                                    ts,
+                                });
                 }
             }
             ::clients::akc::snapshot::FieldData::Group(ref subfields) => {
                 let mut new_path = path.clone();
                 new_path.push(name.to_owned());
-                match recur_find_field(subfields, new_path, field_indication) {
-                    Ok(result) => return Ok(result),
-                    Err(_) => (),
-                };
+                result.extend(recur_find_fields(subfields, new_path, field_indication));
             }
         }
     }
-    return Err(Error::NoMatch);
+    result
+}
+
 }
