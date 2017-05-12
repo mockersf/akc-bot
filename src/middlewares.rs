@@ -4,9 +4,9 @@ extern crate router;
 use iron::{Request, Response, IronResult, AfterMiddleware};
 use iron::error::IronError;
 use iron::status;
-use iron::headers::ContentType;
 use router::NoRoute;
-
+use hyper::header::{Headers, ContentType};
+use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
 
 pub struct Default404;
 impl AfterMiddleware for Default404 {
@@ -22,7 +22,10 @@ impl AfterMiddleware for Default404 {
 pub struct JsonResponse;
 impl AfterMiddleware for JsonResponse {
     fn after(&self, _: &mut Request, mut res: Response) -> IronResult<Response> {
-        res.headers.set(ContentType::json());
+        if !res.headers.has::<ContentType>() {
+            res.headers.set(ContentType(Mime(TopLevel::Application, SubLevel::Json,
+                                             vec![(Attr::Charset, Value::Utf8)])));
+        }
         Ok(res)
     }
 }

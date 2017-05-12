@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use iron::{Handler, status, IronResult, Response, Request};
+use iron::headers::ContentType;
 use urlencoded::UrlEncodedQuery;
 
 use iron::prelude::*;
@@ -23,7 +24,9 @@ create_handler!(ExchangeToken, |_: &ExchangeToken, req: &mut Request| {
                         .lock()
                         .unwrap()
                         .add_token(state[0].to_string(), token);
-                    Ok(Response::with((status::Ok, "You can now return to hipchat")))
+                    let mut response = Response::with((status::Ok, "You can now return to hipchat"));
+                    response.headers.set(ContentType::html());
+                    Ok(response)
                 }
                 Err(err) => {
                     warn!("{:?}", err);
