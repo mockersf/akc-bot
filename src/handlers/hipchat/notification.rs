@@ -11,62 +11,10 @@ use handlers::lib::my_error::MyError;
 
 use DATABASE;
 
-#[derive(Deserialize, Debug, Clone)]
-struct User {
-    name: String,
-    id: u32,
-    mention_name: String,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-struct Room {
-    name: String,
-    id: u32,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-struct Message {
-    message: String,
-    id: String,
-    from: User,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-struct Item {
-    room: Option<Room>,
-    message: Option<Message>,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-struct Notification {
-    event: EventType,
-    item: Item,
-    oauth_client_id: String,
-    webhook_id: u32,
-}
-
-#[derive(Deserialize, Debug, Clone)]
-#[serde(rename_all = "snake_case")]
-enum EventType {
-    RoomMessage,
-}
-
-#[derive(Serialize, Debug, Clone)]
-struct NotificationResponse {
-    message: String,
-    color: Color,
-}
-
-#[derive(Serialize, Debug, Clone)]
-#[serde(rename_all = "lowercase")]
-enum Color {
-    Green,
-    Yellow,
-    Purple,
-    Red,
-}
-
 use CONFIGURATION;
+
+use clients::hipchat::message::*;
+use clients::hipchat::notification::*;
 
 fn notification_from_message(message: sami::output::MessageToUser) -> NotificationResponse {
     info!("{:?}", message);

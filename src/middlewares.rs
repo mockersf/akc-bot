@@ -5,7 +5,7 @@ use iron::{Request, Response, IronResult, AfterMiddleware};
 use iron::error::IronError;
 use iron::status;
 use router::NoRoute;
-use hyper::header::{Headers, ContentType};
+use hyper::header::ContentType;
 use hyper::mime::{Mime, TopLevel, SubLevel, Attr, Value};
 
 pub struct Default404;
@@ -23,8 +23,10 @@ pub struct JsonResponse;
 impl AfterMiddleware for JsonResponse {
     fn after(&self, _: &mut Request, mut res: Response) -> IronResult<Response> {
         if !res.headers.has::<ContentType>() {
-            res.headers.set(ContentType(Mime(TopLevel::Application, SubLevel::Json,
-                                             vec![(Attr::Charset, Value::Utf8)])));
+            res.headers
+                .set(ContentType(Mime(TopLevel::Application,
+                                      SubLevel::Json,
+                                      vec![(Attr::Charset, Value::Utf8)])));
         }
         Ok(res)
     }

@@ -151,9 +151,20 @@ fn main() {
     let (logger_before, logger_after) = Logger::new(None);
 
     let mut router = Router::new();
+    router.get("/", handlers::about::HomePage::new(), "homepage");
+
+    router.get("/hipchat",
+               handlers::hipchat::descriptor::AddOnDescriptor::new(),
+               "hipchat_descriptor");
     router.post("/hipchat/notification",
-                handlers::hipchat::ReceiveNotification::new(),
+                handlers::hipchat::notification::ReceiveNotification::new(),
                 "hipchat_notification");
+    router.post("/hipchat/installation",
+                handlers::hipchat::installation_callback::PostInstallation::new(),
+                "hipchat_installation_post");
+    router.delete("/hipchat/installation/:installation",
+                  handlers::hipchat::installation_callback::DeleteInstallation::new(),
+                  "hipchat_installation_delete");
 
     router.get("/akc/auth",
                handlers::akc::ExchangeToken::new(),
