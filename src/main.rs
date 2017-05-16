@@ -46,10 +46,14 @@ use futures_cpupool::CpuPool;
 use ini::Ini;
 
 struct Configuration {
+    self_url: String,
+
     witai_token: String,
     witai_version: String,
+
     akc_appid: String,
     akc_appsecret: String,
+    
     hipchat_command: String,
 }
 
@@ -57,6 +61,9 @@ lazy_static! {
     static ref CONFIGURATION: Configuration = {
         info!("reading configuration");
         let conf = Ini::load_from_file("conf.ini").unwrap();
+
+        let self_section = conf.section(Some("Self".to_owned())).unwrap();
+        let self_url = self_section.get("url").unwrap();
 
         let witai_section = conf.section(Some("WitAI".to_owned())).unwrap();
         let witai_token = witai_section.get("token").unwrap();
@@ -69,6 +76,7 @@ lazy_static! {
         let hipchat_section = conf.section(Some("HipChat".to_owned())).unwrap();
         let hipchat_command = hipchat_section.get("command").unwrap();
         Configuration {
+            self_url: self_url.to_owned(),
             witai_token: witai_token.to_owned(),
             witai_version: witai_version.to_owned(),
             akc_appid: akc_appid.to_owned(),
@@ -153,6 +161,7 @@ fn main() {
     let mut router = Router::new();
     router.get("/", handlers::about::HomePage::new(), "homepage");
 
+    info!("url for hipchat descriptor: {}/hipchat", &CONFIGURATION.self_url);
     router.get("/hipchat",
                handlers::hipchat::descriptor::AddOnDescriptor::new(),
                "hipchat_descriptor");
