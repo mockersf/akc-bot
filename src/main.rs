@@ -7,6 +7,8 @@ extern crate time;
 extern crate iron;
 extern crate router;
 extern crate urlencoded;
+extern crate jwt;
+extern crate crypto;
 
 #[macro_use]
 extern crate serde_derive;
@@ -53,7 +55,7 @@ struct Configuration {
 
     akc_appid: String,
     akc_appsecret: String,
-    
+
     hipchat_command: String,
 }
 
@@ -161,7 +163,8 @@ fn main() {
     let mut router = Router::new();
     router.get("/", handlers::about::HomePage::new(), "homepage");
 
-    info!("url for hipchat descriptor: {}/hipchat", &CONFIGURATION.self_url);
+    info!("url for hipchat descriptor: {}/hipchat",
+          &CONFIGURATION.self_url);
     router.get("/hipchat",
                handlers::hipchat::descriptor::AddOnDescriptor::new(),
                "hipchat_descriptor");

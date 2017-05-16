@@ -3,6 +3,11 @@ use bodyparser;
 use iron::prelude::*;
 use serde_json;
 use futures::Future;
+use hyper::header::{Authorization, Scheme};
+use hyper::error::Error;
+use std::str::FromStr;
+use jwt::{Header, Registered, Token};
+use crypto::sha2::Sha256;
 
 use clients::witai::WitAi;
 use sami;
@@ -10,6 +15,7 @@ use sami;
 use handlers::lib::my_error::MyError;
 
 use DATABASE;
+use handlers::hipchat::HC_DATABASE;
 
 use CONFIGURATION;
 
@@ -71,8 +77,58 @@ fn notification_from_message(message: sami::output::MessageToUser) -> Notificati
     }
 }
 
+#[derive(Clone, Debug)]
+struct JWT {
+    iss: String,
+    sub: String,
+    exp: u64,
+    iat: u64,
+    jti: String,
+}
+use std::fmt;
+impl Scheme for JWT {
+    fn scheme() -> Option<&'static str> {
+        Some("JWT")
+    }
+
+    fn fmt_scheme(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.write_str(&self.iss)
+    }
+}
+impl FromStr for JWT {
+    type Err = Error;
+    fn from_str(s: &str) -> Result<JWT, Error> {
+        let token = Token::<Header, Registered>::parse(s).unwrap();
+        let secret = {
+            let locked = HC_DATABASE.lock().unwrap();
+            let installation = locked.get_installation(token.claims.iss.clone().unwrap());
+            if !installation.is_some() {
+                return Err(Error::Header);
+            }
+            installation.unwrap().clone().oauth_secret
+        };
+        if token.verify(secret.as_bytes(), Sha256::new()) {
+            Ok(JWT {
+                   iss: token.claims.iss.unwrap(),
+                   sub: token.claims.sub.unwrap(),
+                   exp: token.claims.exp.unwrap(),
+                   iat: token.claims.iat.unwrap(),
+                   jti: token.claims.jti.unwrap(),
+               })
+        } else {
+            Err(Error::Header)
+        }
+    }
+}
+
 create_handler!(ReceiveNotification,
                 |_: &ReceiveNotification, req: &mut Request| {
+    {
+        let auth = req.headers.get::<Authorization<JWT>>();
+        if !auth.is_some() {
+            return MyError::http_error(status::Unauthorized, "invalid JWT");
+        }
+    }
     let struct_body = req.get::<bodyparser::Struct<Notification>>();
     match struct_body {
         Ok(Some(struct_body)) => {
