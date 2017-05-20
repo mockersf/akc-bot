@@ -4,6 +4,8 @@ use std::fmt;
 use hyper::Url;
 use futures::future::*;
 
+use oauth2;
+
 use clients::akc::Akc;
 use clients::akc::error::AkcClientError;
 use clients::akc::helpers;
@@ -52,7 +54,7 @@ impl fmt::Display for FieldValue {
 }
 
 impl Akc {
-    pub fn snapshots(token: ::clients::oauth2::Token, sdid: Vec<String>) -> Box<Future<Item = Vec<Snapshot>, Error = AkcClientError>> {
+    pub fn snapshots(token: oauth2::Token, sdid: Vec<String>) -> Box<Future<Item = Vec<Snapshot>, Error = AkcClientError>> {
         let url = Url::parse(&format!("{}/messages/snapshots", Self::base_url::<'static>())).unwrap();
 
         Self::get_with_params::<DataSnapshot>(token, url, vec![("sdids".to_string(), sdid.join(","))])

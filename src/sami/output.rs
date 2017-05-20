@@ -1,3 +1,5 @@
+use oauth2;
+
 use sami::{input, process, Intent};
 
 #[derive(Debug)]
@@ -16,7 +18,7 @@ pub struct MessageToUser {
 }
 
 impl MessageToUser {
-    pub fn from(akc_token: ::clients::oauth2::Token, nlp_response: input::NlpResponse) -> MessageToUser {
+    pub fn from(akc_token: oauth2::Token, nlp_response: input::NlpResponse) -> MessageToUser {
         process::generate_response(akc_token, nlp_response)
     }
 }

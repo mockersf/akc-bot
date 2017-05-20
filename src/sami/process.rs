@@ -1,6 +1,8 @@
+use oauth2;
+
 use sami::{Intent, output, input, akc_request, Error};
 
-pub fn generate_response(akc_token: ::clients::oauth2::Token, nlp_response: input::NlpResponse) -> output::MessageToUser {
+pub fn generate_response(akc_token: oauth2::Token, nlp_response: input::NlpResponse) -> output::MessageToUser {
     info!("{:?}", nlp_response);
     match nlp_response.intent {
 

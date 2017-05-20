@@ -7,6 +7,8 @@ use iron::prelude::*;
 use serde_json;
 use futures::Future;
 
+use oauth2;
+
 use DATABASE;
 
 use handlers::lib::my_error::MyError;
@@ -22,7 +24,7 @@ create_handler!(SetTokenForContext,
     match struct_body {
         Ok(Some(struct_body)) => {
             let from = get_path_param!(req, "from").to_string();
-            let token = ::clients::oauth2::Token::from_access_token(struct_body.access_token);
+            let token = oauth2::Token::from_access_token(struct_body.access_token);
             DATABASE.lock().unwrap().add_token(from, token);
 
             Ok(Response::with(status::Created))

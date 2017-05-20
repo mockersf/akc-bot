@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use futures::Future;
 
+use oauth2;
+
 use sami::Error;
 
 use USER_CACHE;
@@ -53,13 +55,13 @@ macro_rules! cache_get_or_set {
 }
 
 
-pub fn find_user(akc_token: &::clients::oauth2::Token) -> Result<::clients::akc::user::User, Error> {
+pub fn find_user(akc_token: &oauth2::Token) -> Result<::clients::akc::user::User, Error> {
     Ok(cache_get_or_set!(USER_CACHE,
                          akc_token.access_token().to_string(),
                          ::clients::akc::Akc::user_self(akc_token.clone()).wait()))
 }
 
-pub fn find_device_with(akc_token: &::clients::oauth2::Token, indications: &[String]) -> Result<::clients::akc::device::Device, Error> {
+pub fn find_device_with(akc_token: &oauth2::Token, indications: &[String]) -> Result<::clients::akc::device::Device, Error> {
     let uid = find_user(akc_token)?.id;
     let mut devices = cache_get_or_set!(DEVICE_CACHE,
                                         akc_token.access_token().to_string(),
@@ -77,7 +79,7 @@ pub fn find_device_with(akc_token: &::clients::oauth2::Token, indications: &[Str
     }
 }
 
-pub fn find_field_value_with(akc_token: &::clients::oauth2::Token,
+pub fn find_field_value_with(akc_token: &oauth2::Token,
                              device_id: &str,
                              field_indication: &str)
                              -> Result<FieldValueAndPath, Error> {

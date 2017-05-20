@@ -8,7 +8,7 @@ use iron::prelude::*;
 
 use DATABASE;
 use CONFIGURATION;
-use clients::oauth2;
+use oauth2;
 
 create_handler!(ExchangeToken, |_: &ExchangeToken, req: &mut Request| {
     let params = get_query_params!(req, "code", "state");

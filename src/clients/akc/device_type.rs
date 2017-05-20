@@ -1,6 +1,8 @@
 use hyper::Url;
 use futures::future::*;
 
+use oauth2;
+
 use clients::akc::Akc;
 use clients::akc::error::AkcClientError;
 use clients::akc::helpers;
@@ -16,11 +18,11 @@ pub struct DeviceType {
 }
 
 impl Akc {
-    pub fn device_types_parallel(token: ::clients::oauth2::Token) -> Box<Future<Item = Vec<DeviceType>, Error = AkcClientError>> {
+    pub fn device_types_parallel(token: oauth2::Token) -> Box<Future<Item = Vec<DeviceType>, Error = AkcClientError>> {
         let url = Url::parse(&format!("{}/devicetypes", Self::base_url())).unwrap();
         Self::get_all_pages_async_parallel::<DataDeviceTypes>(token, url)
     }
-    pub fn device_types_sequential(token: ::clients::oauth2::Token) -> Box<Future<Item = Vec<DeviceType>, Error = AkcClientError>> {
+    pub fn device_types_sequential(token: oauth2::Token) -> Box<Future<Item = Vec<DeviceType>, Error = AkcClientError>> {
         let url = Url::parse(&format!("{}/devicetypes", Self::base_url())).unwrap();
         Self::get_all_pages_async_sequential::<DataDeviceTypes>(token, url)
     }

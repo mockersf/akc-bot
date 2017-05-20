@@ -27,6 +27,8 @@ extern crate ini;
 extern crate lazy_static;
 extern crate transient_hashmap;
 
+extern crate oauth2;
+
 mod log_message;
 mod middlewares;
 mod handlers;
@@ -107,17 +109,17 @@ lazy_static! {
 
 #[derive(Clone, Debug)]
 pub struct Database {
-    tokens: HashMap<String, ::clients::oauth2::Token>,
+    tokens: HashMap<String, oauth2::Token>,
 }
 impl Database {
     pub fn new() -> Database {
         Database { tokens: HashMap::new() }
     }
-    pub fn add_token(&mut self, from: String, token: ::clients::oauth2::Token) {
+    pub fn add_token(&mut self, from: String, token: oauth2::Token) {
         info!("setting token {} - {:?}", from, token);
         self.tokens.insert(from, token);
     }
-    pub fn get_token(&self, key: String) -> Option<&::clients::oauth2::Token> {
+    pub fn get_token(&self, key: String) -> Option<&oauth2::Token> {
         self.tokens.get(&key)
     }
     pub fn remove_token(&mut self, access_token: String) {

@@ -8,18 +8,20 @@ use hyper::status::StatusCode;
 
 use futures::stream::{self, Stream};
 
+use oauth2;
+
 use clients::akc::Akc;
 use clients::akc::error::{AkcClientError, ErrorWrapper};
 use clients::future_request;
 
 impl Akc {
-    fn auth_header(token: ::clients::oauth2::Token) -> Headers {
+    fn auth_header(token: oauth2::Token) -> Headers {
         let mut headers = Headers::new();
         headers.set(token.bearer());
         headers
     }
 
-    pub fn get<Wrapper>(token: ::clients::oauth2::Token,
+    pub fn get<Wrapper>(token: oauth2::Token,
                         url: hyper::Url)
                         -> Box<Future<Item = Wrapper::Data, Error = AkcClientError> + std::marker::Send>
         where Wrapper: DataWrapper,
@@ -29,7 +31,7 @@ impl Akc {
         Self::get_with_params::<Wrapper>(token, url, vec![])
     }
 
-    pub fn get_with_params<Wrapper>(token: ::clients::oauth2::Token,
+    pub fn get_with_params<Wrapper>(token: oauth2::Token,
                                     mut url: hyper::Url,
                                     query_params: Vec<(String, String)>)
                                     -> Box<Future<Item = Wrapper::Data, Error = AkcClientError> + std::marker::Send>
@@ -59,7 +61,7 @@ impl Akc {
     }
 
 
-    pub fn get_paginated_with_params<Wrapper>(token: ::clients::oauth2::Token,
+    pub fn get_paginated_with_params<Wrapper>(token: oauth2::Token,
                                               mut url: hyper::Url,
                                               query_params: Vec<(String, String)>)
                                               -> Box<Future<Item = (Wrapper::Data, u32), Error = AkcClientError> + std::marker::Send>
@@ -90,7 +92,7 @@ impl Akc {
     }
 
     pub fn get_paginated_with_pagination_info<Wrapper>
-        (token: ::clients::oauth2::Token,
+        (token: oauth2::Token,
          mut url: hyper::Url,
          offset: u32,
          page_count: u32)
@@ -128,7 +130,7 @@ impl Akc {
     }
 
     pub fn get_all_pages_async_sequential<Wrapper>
-        (token: ::clients::oauth2::Token,
+        (token: oauth2::Token,
          url: hyper::Url)
          -> Box<Future<Item = Vec<<<Wrapper as DataWrapper>::Data as Collection>::Collected>, Error = AkcClientError> + std::marker::Send>
         where Wrapper: PaginatedWrapper + DataWrapper,
@@ -164,7 +166,7 @@ impl Akc {
     }
 
     pub fn get_all_pages_async_parallel<Wrapper>
-        (token: ::clients::oauth2::Token,
+        (token: oauth2::Token,
          url: hyper::Url)
          -> Box<Future<Item = Vec<<<Wrapper as DataWrapper>::Data as Collection>::Collected>, Error = AkcClientError> + std::marker::Send>
         where Wrapper: PaginatedWrapper + DataWrapper,

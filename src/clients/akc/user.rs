@@ -1,6 +1,8 @@
 use hyper::Url;
 use futures::future::*;
 
+use oauth2;
+
 use clients::akc::Akc;
 use clients::akc::error::AkcClientError;
 use clients::akc::helpers;
@@ -16,7 +18,7 @@ pub struct User {
 }
 
 impl Akc {
-    pub fn user_self(token: ::clients::oauth2::Token) -> Box<Future<Item = User, Error = AkcClientError>> {
+    pub fn user_self(token: oauth2::Token) -> Box<Future<Item = User, Error = AkcClientError>> {
         let url = Url::parse(&format!("{}/users/self", Self::base_url::<'static>())).unwrap();
 
         Self::get::<DataUser>(token, url)

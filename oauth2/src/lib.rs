@@ -1,15 +1,22 @@
+extern crate hyper;
+extern crate hyper_native_tls;
+extern crate url;
+
+#[macro_use]
+extern crate serde_derive;
+extern crate serde;
+extern crate serde_json;
+
 use std::time::{Duration, SystemTime};
 use std::fmt;
 
-use hyper;
-use hyper::{Url, Client};
+use url::{Url, ParseError};
+use hyper::Client;
 use hyper::net::HttpsConnector;
 use hyper_native_tls::NativeTlsClient;
 use hyper::header::{Headers, Authorization, Basic, Bearer, ContentType};
 use hyper::mime::{Mime, TopLevel, SubLevel};
 use hyper::status::StatusCode;
-use iron;
-use serde_json;
 
 #[derive(Default, Debug, Clone)]
 pub struct Token {
@@ -110,7 +117,7 @@ pub struct Oauth2 {
     token_url: Url,
 }
 impl Oauth2 {
-    pub fn new(app_id: String, app_secret: String, token_url: &str) -> Result<Oauth2, iron::url::ParseError> {
+    pub fn new(app_id: String, app_secret: String, token_url: &str) -> Result<Oauth2, ParseError> {
         Ok(Oauth2 {
                app_id,
                app_secret,
@@ -152,4 +159,10 @@ impl Oauth2 {
             }
         }
     }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn it_works() {}
 }
