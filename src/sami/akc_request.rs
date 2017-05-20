@@ -3,6 +3,7 @@ use std::collections::HashMap;
 use futures::Future;
 
 use oauth2;
+use akc;
 
 use sami::Error;
 
@@ -13,7 +14,7 @@ use DEVICE_CACHE;
 pub struct FieldValueAndPath {
     pub path: Vec<String>,
     pub name: String,
-    pub value: ::clients::akc::snapshot::FieldValue,
+    pub value: akc::snapshot::FieldValue,
     pub ts: Option<u64>,
 }
 impl Clone for FieldValueAndPath {
@@ -55,23 +56,23 @@ macro_rules! cache_get_or_set {
 }
 
 
-pub fn find_user(akc_token: &oauth2::Token) -> Result<::clients::akc::user::User, Error> {
+pub fn find_user(akc_token: &oauth2::Token) -> Result<akc::user::User, Error> {
     Ok(cache_get_or_set!(USER_CACHE,
                          akc_token.access_token().to_string(),
-                         ::clients::akc::Akc::user_self(akc_token.clone()).wait()))
+                         akc::Akc::user_self(akc_token.clone()).wait()))
 }
 
-pub fn find_device_with(akc_token: &oauth2::Token, indications: &[String]) -> Result<::clients::akc::device::Device, Error> {
+pub fn find_device_with(akc_token: &oauth2::Token, indications: &[String]) -> Result<akc::device::Device, Error> {
     let uid = find_user(akc_token)?.id;
     let mut devices = cache_get_or_set!(DEVICE_CACHE,
                                         akc_token.access_token().to_string(),
-                                        ::clients::akc::Akc::devices_parallel(akc_token.clone(), &uid).wait());
+                                        akc::Akc::devices_parallel(akc_token.clone(), &uid).wait());
     for indication in indications {
         devices = devices
             .iter()
             .filter(|device| device.name.to_lowercase().contains(indication))
             .cloned()
-            .collect::<Vec<::clients::akc::device::Device>>();
+            .collect::<Vec<akc::device::Device>>();
     }
     match devices.get(0).cloned() {
         Some(device) => Ok(device),
@@ -83,7 +84,7 @@ pub fn find_field_value_with(akc_token: &oauth2::Token,
                              device_id: &str,
                              field_indication: &str)
                              -> Result<FieldValueAndPath, Error> {
-    let snapshots = match ::clients::akc::Akc::snapshots(akc_token.clone(), vec![device_id.to_string()]).wait() {
+    let snapshots = match akc::Akc::snapshots(akc_token.clone(), vec![device_id.to_string()]).wait() {
         Ok(snapshots) => snapshots,
         Err(err) => {
             warn!("Error getting snapshot for device {:?}: {:?}",
@@ -100,7 +101,7 @@ pub fn find_field_value_with(akc_token: &oauth2::Token,
             return Err(Error::AkcError);
         }
     };
-    if let ::clients::akc::snapshot::FieldData::Group(root) = snapshot.data {
+    if let akc::snapshot::FieldData::Group(root) = snapshot.data {
         let mut fields = recur_find_fields(&root, vec![], field_indication);
         match fields.len() {
             0 => Err(Error::NoMatch),
@@ -117,7 +118,7 @@ pub fn find_field_value_with(akc_token: &oauth2::Token,
     }
 }
 
-fn recur_find_fields(subfields: &HashMap<String, Box<::clients::akc::snapshot::FieldData>>,
+fn recur_find_fields(subfields: &HashMap<String, Box<akc::snapshot::FieldData>>,
                      path: Vec<String>,
                      field_indication: &str)
                      -> Vec<FieldValueAndPath> {
@@ -125,7 +126,7 @@ fn recur_find_fields(subfields: &HashMap<String, Box<::clients::akc::snapshot::F
     for (name, value) in subfields.iter() {
         info!("{:?} - {:?} : {:?}", path, name, value);
         match **value {
-            ::clients::akc::snapshot::FieldData::Field { ts, ref value } => {
+            akc::snapshot::FieldData::Field { ts, ref value } => {
                 if name == field_indication {
                     result.push(FieldValueAndPath {
                                     path: path.clone(),
@@ -135,7 +136,7 @@ fn recur_find_fields(subfields: &HashMap<String, Box<::clients::akc::snapshot::F
                                 });
                 }
             }
-            ::clients::akc::snapshot::FieldData::Group(ref subfields) => {
+            akc::snapshot::FieldData::Group(ref subfields) => {
                 let mut new_path = path.clone();
                 new_path.push(name.to_owned());
                 result.extend(recur_find_fields(subfields, new_path, field_indication));

@@ -28,6 +28,8 @@ extern crate lazy_static;
 extern crate transient_hashmap;
 
 extern crate oauth2;
+extern crate akc;
+extern crate future_request;
 
 mod log_message;
 mod middlewares;
@@ -91,18 +93,12 @@ lazy_static! {
 }
 
 lazy_static! {
-    static ref REQUEST_CPU_POOL: CpuPool = {
-        CpuPool::new_num_cpus()
-    };
-}
-
-lazy_static! {
-    static ref USER_CACHE: Arc<Mutex<TransientHashMap<String, clients::akc::user::User>>> = {
+    static ref USER_CACHE: Arc<Mutex<TransientHashMap<String, akc::user::User>>> = {
         Arc::new(Mutex::new(TransientHashMap::new(60 * 60 * 24 * 14)))
     };
 }
 lazy_static! {
-    static ref DEVICE_CACHE: Arc<Mutex<TransientHashMap<String, Vec<clients::akc::device::Device>>>> = {
+    static ref DEVICE_CACHE: Arc<Mutex<TransientHashMap<String, Vec<akc::device::Device>>>> = {
         Arc::new(Mutex::new(TransientHashMap::new(60 * 30)))
     };
 }

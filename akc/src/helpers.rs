@@ -10,9 +10,9 @@ use futures::stream::{self, Stream};
 
 use oauth2;
 
-use clients::akc::Akc;
-use clients::akc::error::{AkcClientError, ErrorWrapper};
-use clients::future_request;
+use Akc;
+use error::{AkcClientError, ErrorWrapper};
+use future_request;
 
 impl Akc {
     fn auth_header(token: oauth2::Token) -> Headers {

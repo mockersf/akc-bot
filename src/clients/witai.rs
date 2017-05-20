@@ -4,7 +4,7 @@ use futures::future::*;
 use std::collections::HashMap;
 use serde_json;
 use hyper;
-use clients::future_request;
+use future_request;
 
 use CONFIGURATION;
 

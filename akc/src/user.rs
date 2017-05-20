@@ -3,9 +3,9 @@ use futures::future::*;
 
 use oauth2;
 
-use clients::akc::Akc;
-use clients::akc::error::AkcClientError;
-use clients::akc::helpers;
+use Akc;
+use error::AkcClientError;
+use helpers;
 
 data_wrapper!(DataUser, User);
 
